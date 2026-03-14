@@ -1,5 +1,4 @@
-#define DBH_IMPLEMENTATION
-#include "dbh.h"
+#include "ui.h"
 #include "raylib.h"
 
 #define SCREEN_WIDTH 800
