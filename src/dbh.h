@@ -437,6 +437,7 @@ uintptr_t __dbh_align_to_multiple(uintptr_t mem, s32 align_to)
 //
 // Args:
 // memory_size -> in bytes
+#define dbh_arena_init() dbh_arena_init_with_size(DBH_ARENA_DEFAULT_COMMITED_MEMORY)
 dbh_arena dbh_arena_init_with_size(size_t memory_size)
 {
     size_t mem_size = memory_size;
@@ -468,7 +469,7 @@ dbh_arena dbh_arena_init_with_size(size_t memory_size)
 
     return arena;
 }
-#define DBH_ARENA_INIT() dbh_arena_init_with_size(DBH_ARENA_DEFAULT_COMMITED_MEMORY)
+
 
 // Args:
 //  arena -> ptr to the dbh_arena form which you would like to allocate.
