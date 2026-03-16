@@ -642,6 +642,23 @@ typedef struct dbh_array_header
         header->count++;                                                                                               \
     } while (0);
 
+#define dbh_array_find(Array, elem, func_ptr)                                                                          \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        ASSERT_WITH_MSG(Array != NULL, "Array is Null");                                                               \
+        dbh_array_header *header = dbh_array_get_header(Array);                                                        \
+        ASSERT_WITH_MSG(header != NULL, "Array Header is Null. This is a serius bug :(.");                             \
+        s64 count = header->count;                                                                                     \
+        for (s64 i = 0; i < count; i++)                                                                                \
+        {                                                                                                              \
+            if (func_ptr(Array[i], elem))                                                                              \
+            {                                                                                                          \
+                return Array[i];                                                                                       \
+            }                                                                                                          \
+        }                                                                                                              \
+        return NULL;                                                                                                   \
+    } while (0);                                                                                                       \
+
 // I dont reset the array's length so it might be wasteful.
 // for example in the first instance we used 1gb data for the array.
 // then we cleared it.  and then we didnt exceed more than a kb of usage for the array.

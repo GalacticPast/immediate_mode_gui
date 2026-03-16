@@ -2,7 +2,10 @@
 
 static ui_state* state;
 
-void ui_create_box(const char* label, ui_elem_type type, ui_elem_size_type size);
+void ui_create_box(const char* label, ui_elem_type type, ui_elem_size_type size_type,ui_elem_action_type action_type)
+{
+    
+}
 
 dbh_return_code ui_init(f32 screen_width , f32 screen_height)
 {
@@ -23,7 +26,7 @@ dbh_return_code ui_update_mouse_pos(vector2d mouse_pos)
 
 bool ui_window(const char *title)
 {
-    ui_create_box(title, TYPE_WINDOW, TYPE_GROWABLE_BASED_ON_CHILD);
+    ui_create_box(title, TYPE_WINDOW, TYPE_BASED_ON_CHILD, TYPE_ACTION_DRAGGABLE | TYPE_ACTION_RESIZABLE);
 
 }
 
