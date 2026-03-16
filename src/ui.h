@@ -57,10 +57,11 @@ typedef enum
 typedef struct
 {
     // this is also a linked list/intrusive list
-    s32 parent_ind;
-    s32 child_ind;
-    s32 next_elem_ind;
-    s32 prev_elem_ind;
+    u64 id;
+    u64 parent_id;
+    u64 child_id;
+    u64 next_elem_id;
+    u64 prev_elem_id;
 
     // element traits 
     ui_elem_type        type;
@@ -77,7 +78,7 @@ typedef struct
 {
     vector2d  mouse_pos;
     dbh_arena arena;
-
+    dbh_stack(ui_elem) curr_parent;
     dbh_array(ui_elem) elements;
     dbh_array(ui_elem) prev_elem_state;
 } ui_state;
