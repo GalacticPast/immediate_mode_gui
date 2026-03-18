@@ -1,25 +1,5 @@
 #pragma once
-#define DBH_IMPLEMENTATION
 #include "dbh.h"
-
-typedef struct
-{
-    f32 x;
-    f32 y;
-} vector2d;
-
-typedef struct
-{
-    f32 x;
-    f32 y;
-    f32 z;
-} vector3d;
-
-typedef struct
-{
-    f32 width;
-    f32 height;
-} rectangle;
 
 typedef enum
 {
@@ -54,45 +34,87 @@ typedef enum
     TYPE_LEFT_BUTTON_RELEASED  = bit4,
 } ui_mouse_state;
 
+typedef enum
+{
+    TYPE_LAYOUT_COLUMN = bit1,
+    TYPE_LAYOUT_ROW    = bit2,
+} ui_layout_type;
+
+typedef struct
+{
+    f32 x;
+    f32 y;
+} vector2d;
+
+typedef struct
+{
+    f32 x;
+    f32 y;
+    f32 z;
+} vector3d;
+
+typedef struct
+{
+    f32 width;
+    f32 height;
+} rectangle;
+
 typedef struct
 {
     // this is also a linked list/intrusive list
     u64 id;
-    u64 parent_id;
-    u64 child_id;
-    u64 next_elem_id;
-    u64 prev_elem_id;
+    // index to itself
+    u64 elem_index;
+    u64 parent_index;
+    u64 child_index;
+    u64 next_elem_index;
+    u64 prev_elem_index;
 
-    // element traits 
+    // element traits
     ui_elem_type        type;
     ui_elem_action_type action_type;
     ui_elem_size_type   size_type;
     vector3d            pos; // absolute position. the z val used for windows/panels sorting.
-    rectangle           rect;
-    
+    rectangle           dimensions;
+
     // text label
-    const char         *label;
+    const char *label;
 } ui_elem;
+
+typedef struct
+{
+    ui_layout_type type;
+    rectangle      dimensions;
+    vector3d       pos; // absolute position. the z val used for windows/panels sorting.
+    vector3d       curr_cursor;
+    vector2d       elem_padding;
+    // i mean could be an array right
+    dbh_array(ui_elem *) elems;
+} ui_layout;
 
 typedef struct
 {
     vector2d  mouse_pos;
     dbh_arena arena;
+
+    dbh_stack(ui_layout) layouts;
     dbh_stack(ui_elem) curr_parent;
     dbh_array(ui_elem) elements;
     dbh_array(ui_elem) prev_elem_state;
 } ui_state;
 
-dbh_return_code ui_init(f32 screen_width, f32 screen_height);
+dbh_return_code ui_init();
 dbh_return_code ui_update_mouse(vector2d mouse_pos, s32 mouse_button_state);
+// this should be called in the end. Because this will reset the ui.
 dbh_array(ui_elem) ui_get_render_commands();
+
+void ui_push_layout(ui_layout_type type);
 
 // this is optional, because by default a window will be TYPE_ACTION_DRAGGABLE | TYPE_ACTION_RESIZABLE |
 // TYPE_BASED_ON_CHILD
-bool ui_set_next_window_state(rectangle size, ui_elem_size_type size_type, vector3d pos,
+b8 ui_set_next_window_state(rectangle size, ui_elem_size_type size_type, vector2d pos,
                               ui_elem_action_type action_type);
-bool ui_window(const char *title);
-
-bool ui_label(const char* label);
+b8 ui_window(const char *title);
+b8 ui_label(const char *label);
 // cannot be a standalone button, it has to be a part of a window/panel
-bool ui_button(const char *label);
+b8 ui_button(const char *label);
