@@ -13,6 +13,10 @@
 #define DBH_PLATFORM_LINUX
 #include <sanitizer/asan_interface.h>
 #include <sys/mman.h>
+#elif __APPLE__
+#include <sanitizer/asan_interface.h>
+#include <sys/mman.h>
+#define DBH_PLATFORM_MACOS
 #endif
 
 /*
@@ -44,7 +48,15 @@ typedef s8 b8;
    ▝▚▄▞▘▗▄▄▞▘▐▙▄▄▖▐▌   ▝▚▄▞▘▐▙▄▄▖    ▐▌  ▐▌▐▌ ▐▌▝▚▄▄▖▐▌ ▐▌▝▚▄▞▘▗▄▄▞▘
 */
 
-#define debug_break asm("int $3")
+#if defined(_MSC_VER)
+    #if _MSC_VER < 1300
+		#define debug_break() __asm int 3 /* Trap to debugger! */
+    #else
+		#define debug_break() __debugbreak()
+    #endif
+#else
+    #define debug_break() __builtin_trap()
+#endif
 
 #define ASSERT(expr)                                                                                                   \
     {                                                                                                                  \
@@ -53,7 +65,7 @@ typedef s8 b8;
             if (!(expr))                                                                                               \
             {                                                                                                          \
                 printf("ASSERTion failure: %s:%d on %s\n", __FILE__, __LINE__, #expr);                                 \
-                debug_break;                                                                                           \
+                debug_break();                                                                                           \
             }                                                                                                          \
         } while (0);                                                                                                   \
     }
@@ -66,7 +78,7 @@ typedef s8 b8;
             {                                                                                                          \
                 printf("%s\n.", msg);                                                                                  \
                 printf("ASSERTion failure: %s:%d on %s\n", __FILE__, __LINE__, #expr);                                 \
-                debug_break;                                                                                           \
+                debug_break();                                                                                           \
             }                                                                                                          \
         } while (0);                                                                                                   \
     }
@@ -460,7 +472,7 @@ u64 dbh_murmur64_seed(void const *data_, size_t len, u64 seed);
 void *__dbh_reserve_virtual_memory(size_t reserve_memory_size)
 {
     void *ptr = NULL;
-#ifdef DBH_PLATFORM_LINUX
+#if defined(DBH_PLATFORM_LINUX) || defined(DBH_PLATFORM_MACOS)
     // thanks @tsoding (mista zozin) for the mmap explanation
     // https://youtu.be/sfyfubzu9ow
     ptr = mmap(NULL, reserve_memory_size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
@@ -469,6 +481,8 @@ void *__dbh_reserve_virtual_memory(size_t reserve_memory_size)
     return ptr;
 #elif DBH_PLATFORM_WINDOWS
 
+#else 
+    ASSERT_WITH_MSG(false, "We havenot defined reserve virtual memory for this platform yet.");
 #endif
     ASSERT(ptr != NULL);
     return (void *)ptr;
@@ -476,7 +490,7 @@ void *__dbh_reserve_virtual_memory(size_t reserve_memory_size)
 
 dbh_return_code __dbh_commit_virtual_memory(void *memory, s32 page_offset, s32 num_pages)
 {
-#ifdef DBH_PLATFORM_LINUX
+#if defined(DBH_PLATFORM_LINUX) || defined(DBH_PLATFORM_MACOS)
     uintptr_t next_page_base_ptr = (uintptr_t)memory + (page_offset * dbh_page_size);
     s64       new_allocated_size = num_pages * dbh_page_size;
     s32       ret_code           = mprotect((void *)next_page_base_ptr, new_allocated_size, PROT_READ | PROT_WRITE);
@@ -493,7 +507,8 @@ dbh_return_code __dbh_commit_virtual_memory(void *memory, s32 page_offset, s32 n
 
     return DBH_SUCCESS;
 #elif DBH_PLATFORM_WINDOWS
-
+#else 
+    ASSERT_WITH_MSG(false, "We havenot defined commit virtual memory for this platform yet.");
 #endif
     ASSERT(false);
     return DBH_ERROR;
@@ -505,22 +520,25 @@ dbh_return_code __dbh_commit_virtual_memory(void *memory, s32 page_offset, s32 n
 // idk when i will call this though, i think i will just unmap it but oh well :)
 dbh_return_code __dbh_decommit_virtual_memory(void *memory, size_t size)
 {
-#ifdef DBH_PLATFORM_LINUX
+#if defined(DBH_PLATFORM_LINUX) || defined(DBH_PLATFORM_MACOS)
     madvise(memory, size, MADV_DONTNEED);
     s32 ret_code = mprotect(memory, size, PROT_NONE);
     ASSERT(ret_code != -1);
     return DBH_SUCCESS;
 #elif DBH_PLATFORM_WINDOWS
 #endif
+    ASSERT_WITH_MSG(false, "We havenot defined commit virtual memory for this platform yet.");
 }
 // unmaping the memory
 dbh_return_code __dbh_release_virtual_memory(void *memory, size_t size)
 {
-#ifdef DBH_PLATFORM_LINUX
+#if defined(DBH_PLATFORM_LINUX) || defined(DBH_PLATFORM_MACOS)
     s32 ret_code = munmap(memory, size);
     ASSERT(ret_code != -1);
     return DBH_SUCCESS;
 #elif DBH_PLATFORM_WINDOWS
+#else 
+    ASSERT_WITH_MSG(false, "We havenot defined release virtual memory for this platform yet.");
 #endif
 }
 /*

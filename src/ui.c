@@ -12,7 +12,11 @@ b8 array_elem_compare(ui_elem *find, ui_elem *with)
 u64 ui_create_box(const char *label, ui_elem_type type, ui_elem_size_type size_type, ui_elem_action_type action_type)
 {
     ui_elem box         = {};
-    ui_elem parent      = dbh_stack_peek(state->curr_parent);
+    ui_elem parent      = {.id = 0};
+    if(dbh_stack_get_count(state->curr_parent))
+    {
+        parent = dbh_stack_peek(state->curr_parent);
+    }
 
     box.id              = dbh_hash_string(label);
     ui_elem *prev_state = dbh_array_find(state->prev_elem_state, box, array_elem_compare);
@@ -90,6 +94,7 @@ b8 ui_button(const char *label)
 
 dbh_array(ui_elem) ui_get_render_commands()
 {
+    s32 count = dbh_array_get_count(state->elements); 
 
     return state->elements;
 }
