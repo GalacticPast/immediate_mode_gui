@@ -8,10 +8,17 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
+vector2d ui_measure_text(const char *text, u32 font_size)
+{
+    s32 text_width = MeasureText(text, font_size);
+    return (vector2d){text_width, 0};
+}                                     
+
+
 int main()
 {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Immediate mode gui");
-    ui_init();
+    ui_init(&ui_measure_text);
 
     while (!WindowShouldClose())
     {

@@ -232,7 +232,8 @@ typedef s8 b8;
 #define bit63 (1ull << 62)
 #define bit64 (1ull << 63)
 
-// thanks google https://github.com/google/sanitizers/wiki/addresssanitizermanualpoisoning
+// thanks google
+// https://github.com/google/sanitizers/wiki/addresssanitizermanualpoisoning
 // user code should use macros instead of functions.
 #if __has_feature(address_sanitizer) || defined(__sanitize_address__)
 #define asan_poison_memory_region(addr, size) __asan_poison_memory_region((addr), (size))
@@ -251,8 +252,8 @@ typedef enum dbh_return_code
 typedef struct dbh_arena
 {
     // how many pages has the arena commited till now.
-    // we need this because if we need the arena to grow it will use the page offset to find out how many pages to
-    // commit.
+    // we need this because if we need the arena to grow it will use the page
+    // offset to find out how many pages to commit.
     s64    curr_page_offset;
     size_t allocated_till_now;
     size_t total_size;
@@ -260,8 +261,8 @@ typedef struct dbh_arena
     //  @@@@@@@@@@@@--------------------
     //              ^-- starting ptr for the next allocation
     uintptr_t curr_mem_pos;
-    // original or the first ptr, this is also the starting page's memory ptr. we will need to pass this ptr if we want
-    // to unmap the memory.
+    // original or the first ptr, this is also the starting page's memory ptr. we
+    // will need to pass this ptr if we want to unmap the memory.
     void *memory;
 } dbh_arena;
 
@@ -332,8 +333,9 @@ typedef struct dbh_array_header
         /*get the remaining length of the array after start + num_elems                                                \
          *  for example: start = 2, num_elems = 3, v = n0 n1 n2 n3 n4 n5 n6 ... n                                      \
          *     v = n0 n1 n2 n3 n4 n5 n6 ...    we want to remove elmems n2, n3, n4                                     \
-         * to get the length of the n5+ array. we have to do v.count -   len(n0,n1,...n4)                              \
-         * length of the whole array - the length from the starting of array up to the last element we want to remove  \
+         * to get the length of the n5+ array. we have to do v.count -                                                 \
+         * len(n0,n1,...n4) length of the whole array - the length from the                                            \
+         * starting of array up to the last element we want to remove                                                  \
          * */                                                                                                          \
         s64 rem_length = header->count - ((start) + (num_elems));                                                      \
         ASSERT(rem_length >= 0);                                                                                       \
@@ -370,7 +372,8 @@ typedef struct dbh_array_header
     })
 
 // the function should have a signatrue like this :
-//          bool func(type* elem_to_find, type *elem_that_the_array_wants_to_check_with);
+//          bool func(type* elem_to_find, type
+//          *elem_that_the_array_wants_to_check_with);
 
 #define dbh_array_find(array, elem, func_ptr)                                                                          \
     ({                                                                                                                 \
@@ -391,9 +394,10 @@ typedef struct dbh_array_header
 
 // i dont reset the array's length so it might be wasteful.
 // for example in the first instance we used 1gb data for the array.
-// then we cleared it.  and then we didnt exceed more than a kb of usage for the array.
-// well because we had allocated a gb beforehand the array's total length would be a gb. i dont reset that even
-// if you call dbh_array_clear() warning: if possible
+// then we cleared it.  and then we didnt exceed more than a kb of usage for the
+// array. well because we had allocated a gb beforehand the array's total length
+// would be a gb. i dont reset that even if you call dbh_array_clear() warning:
+// if possible
 #define dbh_array_clear(array)                                                                                         \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -417,24 +421,26 @@ typedef struct dbh_array_header
 
 #define dbh_stack(type) dbh_array(type)
 #define dbh_stack_init(stack) dbh_array_init(stack)
+#define dbh_stack_get_count(stack) dbh_array_get_count(stack)
 #define dbh_stack_push(stack, elem) dbh_array_append(stack, elem)
 #define dbh_stack_pop(stack) dbh_array_pop(stack)
 #define dbh_stack_peek(stack) dbh_array_get_last(stack)
+#define dbh_stack_clear(stack) dbh_array_clear(stack)
 #define dbh_stack_free(stack) dbh_array_free(stack)
 
 static size_t dbh_hash_seed = 0x31415926;
 #define dbh_hash_string(data) dbh_murmur64_seed(data, strlen(data), dbh_hash_seed)
 
-void *__dbh_reserve_virtual_memory(size_t reserve_memory_size);
+void           *__dbh_reserve_virtual_memory(size_t reserve_memory_size);
 dbh_return_code __dbh_commit_virtual_memory(void *memory, s32 page_offset, s32 num_pages);
 dbh_return_code __dbh_decommit_virtual_memory(void *memory, size_t size);
 dbh_return_code __dbh_release_virtual_memory(void *memory, size_t size);
-dbh_arena dbh_arena_init_with_size(size_t memory_size);
-void *dbh_arena_alloc(dbh_arena *arena, size_t size);
+dbh_arena       dbh_arena_init_with_size(size_t memory_size);
+void           *dbh_arena_alloc(dbh_arena *arena, size_t size);
 dbh_return_code dbh_arena_clear(dbh_arena *arena);
 dbh_return_code __dbh_array_resize(void **array);
 dbh_return_code __dbh_array_init(void **array, size_t type_size);
-void __dbh_array_free(void **array);
+void            __dbh_array_free(void **array);
 
 u64 dbh_murmur64_seed(void const *data_, size_t len, u64 seed);
 
@@ -455,7 +461,8 @@ void *__dbh_reserve_virtual_memory(size_t reserve_memory_size)
 {
     void *ptr = NULL;
 #ifdef DBH_PLATFORM_LINUX
-    // thanks @tsoding (mista zozin) for the mmap explanation https://youtu.be/sfyfubzu9ow
+    // thanks @tsoding (mista zozin) for the mmap explanation
+    // https://youtu.be/sfyfubzu9ow
     ptr = mmap(NULL, reserve_memory_size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
     ASSERT(ptr != MAP_FAILED);
 
@@ -475,7 +482,8 @@ dbh_return_code __dbh_commit_virtual_memory(void *memory, s32 page_offset, s32 n
     s32       ret_code           = mprotect((void *)next_page_base_ptr, new_allocated_size, PROT_READ | PROT_WRITE);
     if (ret_code == -1)
     {
-        printf("cannot commit: %d pages, arleady commited %d pages. increase the reserved virtual alloc size.\n",
+        printf("cannot commit: %d pages, arleady commited %d pages. increase the "
+               "reserved virtual alloc size.\n",
                num_pages, page_offset);
         ASSERT(ret_code != -1);
     }
@@ -490,9 +498,10 @@ dbh_return_code __dbh_commit_virtual_memory(void *memory, s32 page_offset, s32 n
     ASSERT(false);
     return DBH_ERROR;
 }
-// i dont think i will decomit individual pages, for example for an dynamic array i am pretty sure i will not decommit
-// the last page or last 2 pages and so on. so decommit the whole allocated memory size of it.
-// decommiting means letting the os reclaim the pages while retaining the virtual address space.
+// i dont think i will decomit individual pages, for example for an dynamic
+// array i am pretty sure i will not decommit the last page or last 2 pages and
+// so on. so decommit the whole allocated memory size of it. decommiting means
+// letting the os reclaim the pages while retaining the virtual address space.
 // idk when i will call this though, i think i will just unmap it but oh well :)
 dbh_return_code __dbh_decommit_virtual_memory(void *memory, size_t size)
 {
@@ -522,29 +531,32 @@ dbh_return_code __dbh_release_virtual_memory(void *memory, size_t size)
 */
 
 // the easy and the understandable way of doing this is to take an example:
-// m = 13 and n = 8, the problem is that we need to align 13 to an multiple of 8.
-// or in other words how much do i have to add to 13 in order to make it a multiple of 8.
-// really naive solution:
-// 1st) find out the interval in which m exists. (k - 1)n <= m <= kn, in our case 8 < 13 < 16
-// 2nd) find out how much do we have to add. kn - m. 16 - 13 = 3
-// 3rd) add it and then you have the next multiple of n from m.
-// there is a problem with this solution. its really inefficeint because first we have to find the largest multiple of n
-// which is bigger than m. and for large values we might have to do multiple multiplication and then check if that
-// number is greater than n. psudo code
+// m = 13 and n = 8, the problem is that we need to align 13 to an multiple
+// of 8. or in other words how much do i have to add to 13 in order to make it a
+// multiple of 8. really naive solution: 1st) find out the interval in which m
+// exists. (k - 1)n <= m <= kn, in our case 8 < 13 < 16 2nd) find out how much
+// do we have to add. kn - m. 16 - 13 = 3 3rd) add it and then you have the next
+// multiple of n from m. there is a problem with this solution. its really
+// inefficeint because first we have to find the largest multiple of n which is
+// bigger than m. and for large values we might have to do multiple
+// multiplication and then check if that number is greater than n. psudo code
 //             k = 1
 //             while(n * k < m)k++;
 //             how_much_to_add = n * k - m
 //             m + how_much_to_add == n * k
 // so to simplyfy it we do a neat math trick
 // we take the mod of the divisor and the quotient for example: m (mod) n
-// when we do the mod we get the remainder. the remainder will help us find how much do we have to add to make it an
-// multiple of n. for example: 13 mod 8
+// when we do the mod we get the remainder. the remainder will help us find how
+// much do we have to add to make it an multiple of n. for example: 13 mod 8
 //       8|13|1
-//        - 8      the remainder is the remaning part when an integer cannot divide another interger.
-//          5      we can use this fact to find out which integer will divide it.
+//        - 8      the remainder is the remaning part when an integer cannot
+//        divide another interger.
+//          5      we can use this fact to find out which integer will divide
+//          it.
 //    lets visualize this
-//       if we wanted to find out the lowest multiple we cound just minus the remainder and be done with it.
-//       to find out the next largest integer which can be divided we can do (8 - remainder) + 13
+//       if we wanted to find out the lowest multiple we cound just minus the
+//       remainder and be done with it. to find out the next largest integer
+//       which can be divided we can do (8 - remainder) + 13
 //                          8____13__16
 // so this simplifies our solution
 //  pseudo code:
@@ -553,19 +565,17 @@ dbh_return_code __dbh_release_virtual_memory(void *memory, size_t size)
 //      next_multiple = m + padding
 // there is a one small caviat with this solution. lets say m = 8
 // we dont want to find the next multiple if m mod n == 0
-// so before we add the padding we just mod it my n so that if the remainder was 0 the padding will also be 0
-// for example:
-// m = 16, n = 8
-// remainder = 16 % 8 = 0
-// padding = (8 - remainder) = 8 - 0;
+// so before we add the padding we just mod it my n so that if the remainder was
+// 0 the padding will also be 0 for example: m = 16, n = 8 remainder = 16 % 8 =
+// 0 padding = (8 - remainder) = 8 - 0;
 // // if we just add the padding we would get 24 which we dont want. so
 // aligned_padding = padding % n
 // next_multiple = m + aligned_padding
 // one liner : ((n - (m % n)) % n) + m
 //
-// another faster way is to do a bitwise operation if and only if n is a multiple of 2
-// this one is a little confusing. i sill dont understand it compeletly
-// this works because of the 2's complement so for example :
+// another faster way is to do a bitwise operation if and only if n is a
+// multiple of 2 this one is a little confusing. i sill dont understand it
+// compeletly this works because of the 2's complement so for example :
 //  8: 0000000 00000000 00000000 00001000
 //  to get -8 from 8 we do  the following
 //  first we have 8's binary 0000000 00000000 00000000 00001000
@@ -576,8 +586,9 @@ dbh_return_code __dbh_release_virtual_memory(void *memory, size_t size)
 // + 0000000 00000000 00000000 00000001
 //   1111111 11111111 11111111 11111000  which is -8
 //
-// -8: 1111111 11111111 11111111 11111000 .this is the 2's complemenent representation
-// which i didnt know even though i have been programming for about 4 years with c :(. damn wtf.....
+// -8: 1111111 11111111 11111111 11111000 .this is the 2's complemenent
+// representation which i didnt know even though i have been programming for
+// about 4 years with c :(. damn wtf.....
 //
 // so how does the following work?
 // for example mem = 13 and align to = 8
@@ -588,7 +599,8 @@ dbh_return_code __dbh_release_virtual_memory(void *memory, size_t size)
 // (13 + (8 - 1)) & (-8)
 //
 // 13 + (8 - 1)      : 00000000 00000000 00000000 00010100
-// -8                : 11111111 11111111 11111111 11111000 -> which we derived from the above example
+// -8                : 11111111 11111111 11111111 11111000 -> which we derived
+// from the above example
 //(13 +(8 - 1)) & -8 : 00000000 00000000 00000000 00010000 -> which would be 16
 #define dbh_align_to_multiple(mem, align_to) (((uintptr_t)mem + (align_to - 1)) & (-align_to))
 #define dbh_default_memory_alignement 8
@@ -621,8 +633,9 @@ dbh_arena dbh_arena_init_with_size(size_t memory_size)
     {
         mem_size = dbh_align_to_multiple(mem_size, dbh_arena_default_commited_memory);
     }
-    // well if you are allocating an arena which has a size greater than dbh_arena_default_reserved_memory usally 64mb.
-    // then why are you allocating it? i cant think of a reason for that :).
+    // well if you are allocating an arena which has a size greater than
+    // dbh_arena_default_reserved_memory usally 64mb. then why are you allocating
+    // it? i cant think of a reason for that :).
     ASSERT(mem_size < dbh_arena_default_reserved_memory);
 
     s32   num_pages_to_commit = mem_size / dbh_page_size;
@@ -649,8 +662,8 @@ void *dbh_arena_alloc(dbh_arena *arena, size_t size)
 {
     ASSERT(arena != NULL);
     ASSERT(size != 0);
-    // if the size passed on is bigger than the toal size of the arena then increase the size of the arena to accodomate
-    // the allocation.
+    // if the size passed on is bigger than the toal size of the arena then
+    // increase the size of the arena to accodomate the allocation.
     size_t aligned_size = dbh_align_to_multiple(size, dbh_default_memory_alignement);
     if (arena->allocated_till_now + aligned_size > (size_t)arena->total_size)
     {
@@ -666,8 +679,9 @@ void *dbh_arena_alloc(dbh_arena *arena, size_t size)
 
         s32 num_pages = new_size / dbh_page_size;
 
-        // lets say we have commited n - 1 pages of total reserved memory and now we want to allocate n + k number of
-        // pages. i am pretty sure that the os will not let us and its going to crash the application.
+        // lets say we have commited n - 1 pages of total reserved memory and now we
+        // want to allocate n + k number of pages. i am pretty sure that the os will
+        // not let us and its going to crash the application.
         dbh_return_code code = __dbh_commit_virtual_memory(arena->memory, arena->curr_page_offset, num_pages);
 
         arena->total_size       += num_pages * dbh_page_size;
@@ -708,7 +722,8 @@ dbh_return_code dbh_arena_free(dbh_arena *arena)
 {
     ASSERT(arena != NULL);
 
-    // there might be the case that we allocated/commited more than dbh_arena_default_reserved_memory.
+    // there might be the case that we allocated/commited more than
+    // dbh_arena_default_reserved_memory.
     size_t total_reserved_size = max(arena->total_size, dbh_arena_default_reserved_memory);
 
     dbh_return_code res = __dbh_release_virtual_memory(arena->memory, total_reserved_size);

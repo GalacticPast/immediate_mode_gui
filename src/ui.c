@@ -12,6 +12,8 @@ b8 array_elem_compare(ui_elem *find, ui_elem *with)
 u64 ui_create_box(const char *label, ui_elem_type type, ui_elem_size_type size_type, ui_elem_action_type action_type)
 {
     ui_elem box         = {};
+    ui_elem parent      = dbh_stack_peek(state->curr_parent);
+
     box.id              = dbh_hash_string(label);
     ui_elem *prev_state = dbh_array_find(state->prev_elem_state, box, array_elem_compare);
 
@@ -24,34 +26,40 @@ u64 ui_create_box(const char *label, ui_elem_type type, ui_elem_size_type size_t
         u64 parent_index = 0;
         if (type != TYPE_WINDOW)
         {
-            ui_elem parent = dbh_stack_peek(state->curr_parent);
-            parent_index     = parent.elem_index;
+            parent_index   = parent.index;
         }
         box.parent_index = parent_index;
-        box.type = type;
-        box.action_type = action_type; 
-        box.size_type = size_type; 
-        box.label = label;
-
-        if(type == TYPE_WINDOW)
-        {
-#if 1
-            box.dimensions = (rectangle){50, 20};
-            box.pos = (vector3d){50,50,0};
-#endif
-            dbh_stack_push(state->curr_parent, box);
-        }
+        box.type         = type;
+        box.action_type  = action_type;
+        box.size_type    = size_type;
+        box.label        = label;
     }
+
+    box.index = dbh_array_get_count(state->elements);
     dbh_array_append(state->elements, box);
+
+    if (type == TYPE_WINDOW)
+    {
+#if 1
+        box.dimensions = (rectangle){50, 20};
+        box.pos        = (vector3d){50, 50, 0};
+#endif
+        if (dbh_stack_get_count(state->curr_parent))
+        {
+            dbh_stack_clear(state->curr_parent);
+        }
+        dbh_stack_push(state->curr_parent, box);
+    }
 
     return box.id;
 }
 
-dbh_return_code ui_init()
+dbh_return_code ui_init(vector2d (*measure_text_width)(const char *text, u32 font_size))
 {
-    dbh_arena arena = dbh_arena_init();
-    state           = (ui_state *)dbh_arena_alloc(&arena, sizeof(ui_state));
-    state->arena    = arena;
+    dbh_arena arena           = dbh_arena_init();
+    state                     = (ui_state *)dbh_arena_alloc(&arena, sizeof(ui_state));
+    state->arena              = arena;
+    state->measure_text_width = measure_text_width;
     dbh_stack_init(state->curr_parent);
     dbh_array_init(state->elements);
     dbh_array_init(state->prev_elem_state);
@@ -69,14 +77,19 @@ dbh_return_code ui_update_mouse_pos(vector2d mouse_pos)
 b8 ui_window(const char *title)
 {
     u64 id = ui_create_box(title, TYPE_WINDOW, TYPE_BASED_ON_CHILD, TYPE_ACTION_DRAGGABLE | TYPE_ACTION_RESIZABLE);
-    
+
     return true;
 }
 
-b8 ui_button(const char *label);
+b8 ui_button(const char *label)
+{
+    u64 id = ui_create_box(label, TYPE_BUTTON, TYPE_BASED_ON_TEXT_SIZE, TYPE_ACTION_PRESSABLE);
+
+    return false;
+}
 
 dbh_array(ui_elem) ui_get_render_commands()
 {
+
     return state->elements;
 }
-

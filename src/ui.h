@@ -24,6 +24,7 @@ typedef enum
     TYPE_ACTION_FIXED     = bit1,
     TYPE_ACTION_DRAGGABLE = bit2,
     TYPE_ACTION_RESIZABLE = bit3,
+    TYPE_ACTION_PRESSABLE = bit4,
 } ui_elem_action_type;
 
 typedef enum
@@ -64,7 +65,7 @@ typedef struct
     // this is also a linked list/intrusive list
     u64 id;
     // index to itself
-    u64 elem_index;
+    u64 index;
     u64 parent_index;
     u64 child_index;
     u64 next_elem_index;
@@ -101,9 +102,11 @@ typedef struct
     dbh_stack(ui_elem) curr_parent;
     dbh_array(ui_elem) elements;
     dbh_array(ui_elem) prev_elem_state;
+    vector2d (*measure_text_width)(const char* text, u32 font_size);
 } ui_state;
 
-dbh_return_code ui_init();
+
+dbh_return_code ui_init(vector2d (*measure_text_width)(const char* text, u32 font_size));
 dbh_return_code ui_update_mouse(vector2d mouse_pos, s32 mouse_button_state);
 // this should be called in the end. Because this will reset the ui.
 dbh_array(ui_elem) ui_get_render_commands();
