@@ -11,15 +11,15 @@ b8 array_elem_compare(ui_elem *find, ui_elem *with)
 
 u64 ui_create_box(const char *label, ui_elem_type type, ui_elem_size_type size_type, ui_elem_action_type action_type)
 {
-    ui_elem box         = {};
-    ui_elem parent      = {.id = 0};
-    if(dbh_stack_get_count(state->curr_parent))
+    ui_elem box    = {};
+    ui_elem parent = {.id = 0};
+    if (db_stack_get_count(state->curr_parent))
     {
-        parent = dbh_stack_peek(state->curr_parent);
+        parent = db_stack_peek(state->curr_parent);
     }
 
-    box.id              = dbh_hash_string(label);
-    ui_elem *prev_state = dbh_array_find(state->prev_elem_state, box, array_elem_compare);
+    box.id              = db_hash_string(label);
+    ui_elem *prev_state = db_array_find(state->prev_elem_state, box, array_elem_compare);
 
     if (prev_state != NULL)
     {
@@ -30,7 +30,7 @@ u64 ui_create_box(const char *label, ui_elem_type type, ui_elem_size_type size_t
         u64 parent_index = 0;
         if (type != TYPE_WINDOW)
         {
-            parent_index   = parent.index;
+            parent_index = parent.index;
         }
         box.parent_index = parent_index;
         box.type         = type;
@@ -39,8 +39,8 @@ u64 ui_create_box(const char *label, ui_elem_type type, ui_elem_size_type size_t
         box.label        = label;
     }
 
-    box.index = dbh_array_get_count(state->elements);
-    dbh_array_append(state->elements, box);
+    box.index = db_array_get_count(state->elements);
+    db_array_append(state->elements, box);
 
     if (type == TYPE_WINDOW)
     {
@@ -48,34 +48,36 @@ u64 ui_create_box(const char *label, ui_elem_type type, ui_elem_size_type size_t
         box.dimensions = (rectangle){50, 20};
         box.pos        = (vector3d){50, 50, 0};
 #endif
-        if (dbh_stack_get_count(state->curr_parent))
+        if (db_stack_get_count(state->curr_parent))
         {
-            dbh_stack_clear(state->curr_parent);
+            db_stack_clear(state->curr_parent);
         }
-        dbh_stack_push(state->curr_parent, box);
+        db_stack_push(state->curr_parent, box);
     }
 
     return box.id;
 }
 
-dbh_return_code ui_init(vector2d (*measure_text_width)(const char *text, u32 font_size))
+db_return_code ui_init(vector2d (*measure_text_width)(const char *text, u32 font_size))
 {
-    dbh_arena arena           = dbh_arena_init();
-    state                     = (ui_state *)dbh_arena_alloc(&arena, sizeof(ui_state));
+    db_arena arena            = db_arena_init();
+    state                     = (ui_state *)db_arena_alloc(&arena, sizeof(ui_state));
     state->arena              = arena;
     state->measure_text_width = measure_text_width;
-    dbh_stack_init(state->curr_parent);
-    dbh_array_init(state->elements);
-    dbh_array_init(state->prev_elem_state);
-    return DBH_SUCCESS;
+    db_stack_init(state->curr_parent);
+    db_array_init(state->elements);
+    db_array_init(state->prev_elem_state);
+    return DB_SUCCESS
+    {
+    }
 }
 
-dbh_return_code ui_update_mouse_pos(vector2d mouse_pos)
+db_return_code ui_update_mouse_pos(vector2d mouse_pos)
 {
     ASSERT_WITH_MSG(state != NULL, "ERROR: ui state is null.");
 
     state->mouse_pos = mouse_pos;
-    return DBH_SUCCESS;
+    return DB_SUCCESS;
 }
 
 b8 ui_window(const char *title)
@@ -92,9 +94,9 @@ b8 ui_button(const char *label)
     return false;
 }
 
-dbh_array(ui_elem) ui_get_render_commands()
+db_array(ui_elem) ui_get_render_commands()
 {
-    s32 count = dbh_array_get_count(state->elements); 
+    s32 count = db_array_get_count(state->elements);
 
     return state->elements;
 }
