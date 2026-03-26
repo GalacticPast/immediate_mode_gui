@@ -269,8 +269,12 @@ db_return_code __db_commit_virtual_memory(void *memory, s32 page_offset, s32 num
 db_return_code __db_decommit_virtual_memory(void *memory, size_t size);
 db_return_code __db_release_virtual_memory(void *memory, size_t size);
 
-#define DB_PAGE_SIZE (u64)sysconf(_SC_PAGESIZE)
-
+#if defined(DB_PLATFORM_LINUX) || defined(DB_PLATFORM_WINDOWS)
+#define DB_PAGE_SIZE KB(4)
+#elif defined(DB_PLATFORM_MACOS) // if the mac is an apple silicon which has an default page size of 16kb
+// kind of a hack, what if the macos is apple intel ? 
+#define DB_PAGE_SIZE KB(16)
+#endif 
 /*
  ▗▄▖ ▗▄▄▖ ▗▄▄▄▖▗▖  ▗▖ ▗▄▖  ▗▄▄▖
 ▐▌ ▐▌▐▌ ▐▌▐▌   ▐▛▚▖▐▌▐▌ ▐▌▐▌
