@@ -13,6 +13,10 @@
 #define DB_PLATFORM_LINUX
 #include <sanitizer/asan_interface.h>
 #include <sys/mman.h>
+#elif __APPLE__
+#define DB_PLATFORM_MACOS
+#include <sanitizer/asan_interface.h>
+#include <sys/mman.h>
 #endif
 
 /*
@@ -44,7 +48,11 @@ typedef s8 b8;
    ▝▚▄▞▘▗▄▄▞▘▐▙▄▄▖▐▌   ▝▚▄▞▘▐▙▄▄▖    ▐▌  ▐▌▐▌ ▐▌▝▚▄▄▖▐▌ ▐▌▝▚▄▞▘▗▄▄▞▘
 */
 
+#if defined(DB_PLATFORM_LINUX)
 #define DEBUG_BREAK asm("int $3")
+#elif defined(DB_PLATFORM_MACOS)
+#define DEBUG_BREAK __builtin_trap()
+#endif
 
 #define ASSERT(expr)                                                                                                   \
     {                                                                                                                  \
@@ -453,6 +461,7 @@ void           __db_array_free(void **array);
 #define db_stack_peek(stack) db_array_get_last(stack)
 #define db_stack_free(stack) db_array_free(stack)
 #define db_stack_get_count(stack) db_array_get_count(stack)
+#define db_stack_clear(stack) db_array_clear(stack)
 
 /*
  ▗▄▄▖▗▖ ▗▖ ▗▄▖ ▗▄▄▖  ▗▄▄▖
@@ -548,8 +557,9 @@ void db_string_set(db_string str, char const *cstr);
 ▐▌ ▐▌▐▌ ▐▌▗▄▄▞▘▐▌ ▐▌▐▌  ▐▌▐▌ ▐▌▐▌
 */
 
-#define DB_hash_seed 0x31415926
-#define DB_hash_string(data) db_murmur64A_seed(data, strlen(data), db_hash_seed)
+#define DB_HASH_SEED 0x31415926
+#define db_hash_string(data) db_murmur64A_seed(data, strlen(data), DB_HASH_SEED)
+u64 db_murmur64A_seed(const void *key, u64 len, u64 seed);
 
 /*
 ▗▖  ▗▖▗▄▄▄▖▗▖  ▗▖ ▗▄▖ ▗▄▄▖▗▖  ▗▖
@@ -580,7 +590,7 @@ u64 db_murmur64_seed(void const *data_, size_t len, u64 seed);
 void *__db_reserve_virtual_memory(size_t reserve_memory_size)
 {
     void *ptr = NULL;
-#ifdef DB_PLATFORM_LINUX
+#if defined(DB_PLATFORM_LINUX) || defined(DB_PLATFORM_MACOS)
     // thanks @tsoding (mista zozin) for the mmap explanation https://youtu.be/sfyfubzu9ow
     ptr = mmap(NULL, reserve_memory_size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
     ASSERT(ptr != MAP_FAILED);
@@ -595,7 +605,7 @@ void *__db_reserve_virtual_memory(size_t reserve_memory_size)
 
 db_return_code __db_commit_virtual_memory(void *memory, s32 page_offset, s32 num_pages)
 {
-#ifdef DB_PLATFORM_LINUX
+#if defined(DB_PLATFORM_LINUX) || defined(DB_PLATFORM_MACOS)
     uintptr_t next_page_base_ptr = (uintptr_t)memory + (page_offset * DB_PAGE_SIZE);
     s64       new_allocated_size = num_pages * DB_PAGE_SIZE;
     s32       ret_code           = mprotect((void *)next_page_base_ptr, new_allocated_size, PROT_READ | PROT_WRITE);
@@ -622,7 +632,7 @@ db_return_code __db_commit_virtual_memory(void *memory, s32 page_offset, s32 num
 // idk when i will call this though, i think i will just unmap it but oh well :)
 db_return_code __db_decommit_virtual_memory(void *memory, size_t size)
 {
-#ifdef DB_PLATFORM_LINUX
+#if defined(DB_PLATFORM_LINUX) || defined(DB_PLATFORM_MACOS)
     madvise(memory, size, MADV_DONTNEED);
     s32 ret_code = mprotect(memory, size, PROT_NONE);
     ASSERT(ret_code != -1);
@@ -634,7 +644,7 @@ db_return_code __db_decommit_virtual_memory(void *memory, size_t size)
 // unmaping the memory
 db_return_code __db_release_virtual_memory(void *memory, size_t size)
 {
-#ifdef DB_PLATFORM_LINUX
+#if defined(DB_PLATFORM_LINUX) || defined(DB_PLATFORM_MACOS)
     s32 ret_code = munmap(memory, size);
     ASSERT(ret_code != -1);
     return DB_SUCCESS;

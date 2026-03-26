@@ -67,9 +67,7 @@ db_return_code ui_init(vector2d (*measure_text_width)(const char *text, u32 font
     db_stack_init(state->curr_parent);
     db_array_init(state->elements);
     db_array_init(state->prev_elem_state);
-    return DB_SUCCESS
-    {
-    }
+    return DB_SUCCESS;
 }
 
 db_return_code ui_update_mouse_pos(vector2d mouse_pos)
