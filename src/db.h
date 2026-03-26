@@ -2,10 +2,10 @@
 
 // asci art font : rubi_font https://patorjk.com/software/taag
 
-#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #ifdef __win32__
 #define DB_PLATFORM_WINDOWS
@@ -250,11 +250,26 @@ typedef s8 b8;
 #define asan_unpoison_memory_region(addr, size) ((void)(addr), (void)(size))
 #endif
 
+
 typedef enum db_return_code
 {
     DB_ERROR   = 0,
     DB_SUCCESS = 1,
 } db_return_code;
+
+/*
+▗▖  ▗▖▗▄▄▄▖▗▖  ▗▖ ▗▄▖ ▗▄▄▖▗▖  ▗▖
+▐▛▚▞▜▌▐▌   ▐▛▚▞▜▌▐▌ ▐▌▐▌ ▐▌▝▚▞▘
+▐▌  ▐▌▐▛▀▀▘▐▌  ▐▌▐▌ ▐▌▐▛▀▚▖ ▐▌
+▐▌  ▐▌▐▙▄▄▖▐▌  ▐▌▝▚▄▞▘▐▌ ▐▌ ▐▌
+*/
+
+void          *__db_reserve_virtual_memory(size_t reserve_memory_size);
+db_return_code __db_commit_virtual_memory(void *memory, s32 page_offset, s32 num_pages);
+db_return_code __db_decommit_virtual_memory(void *memory, size_t size);
+db_return_code __db_release_virtual_memory(void *memory, size_t size);
+
+#define DB_PAGE_SIZE (u64)sysconf(_SC_PAGESIZE)
 
 /*
  ▗▄▖ ▗▄▄▖ ▗▄▄▄▖▗▖  ▗▖ ▗▄▖  ▗▄▄▖
@@ -281,8 +296,8 @@ typedef struct db_arena
 } db_arena;
 
 #define DB_ARENA_DEFAULT_RESERVED_MEMORY MB(64)
-#define DB_ARENA_DEFAULT_COMMITED_MEMORY KB(4)
-#define db_arena_init() db_arena_init_with_size(DB_ARENA_DEFAULT_COMMITED_MEMORY)
+#define DB_ARENA_DEFAULT_COMMITED_MEMORY DB_PAGE_SIZE 
+#define db_arena_init() db_arena_init_with_size((size_t)DB_ARENA_DEFAULT_COMMITED_MEMORY)
 db_arena       db_arena_init_with_size(size_t memory_size);
 void          *db_arena_alloc(db_arena *arena, size_t size);
 db_return_code db_arena_clear(db_arena *arena);
@@ -561,18 +576,6 @@ void db_string_set(db_string str, char const *cstr);
 #define db_hash_string(data) db_murmur64A_seed(data, strlen(data), DB_HASH_SEED)
 u64 db_murmur64A_seed(const void *key, u64 len, u64 seed);
 
-/*
-▗▖  ▗▖▗▄▄▄▖▗▖  ▗▖ ▗▄▖ ▗▄▄▖▗▖  ▗▖
-▐▛▚▞▜▌▐▌   ▐▛▚▞▜▌▐▌ ▐▌▐▌ ▐▌▝▚▞▘
-▐▌  ▐▌▐▛▀▀▘▐▌  ▐▌▐▌ ▐▌▐▛▀▚▖ ▐▌
-▐▌  ▐▌▐▙▄▄▖▐▌  ▐▌▝▚▄▞▘▐▌ ▐▌ ▐▌
-*/
-
-void          *__db_reserve_virtual_memory(size_t reserve_memory_size);
-db_return_code __db_commit_virtual_memory(void *memory, s32 page_offset, s32 num_pages);
-db_return_code __db_decommit_virtual_memory(void *memory, size_t size);
-db_return_code __db_release_virtual_memory(void *memory, size_t size);
-
 u64 db_murmur64_seed(void const *data_, size_t len, u64 seed);
 
 /*
@@ -585,7 +588,7 @@ u64 db_murmur64_seed(void const *data_, size_t len, u64 seed);
 
 #ifdef DB_IMPLEMENTATION
 // verify later on though if i could have huge pages or not
-#define DB_PAGE_SIZE KB(4)
+
 
 void *__db_reserve_virtual_memory(size_t reserve_memory_size)
 {
