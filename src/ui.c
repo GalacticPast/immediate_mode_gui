@@ -40,7 +40,6 @@ u64 ui_create_box(const char *label, ui_elem_type type, ui_elem_size_type size_t
     }
 
     box.index = db_array_get_count(state->elements);
-    db_array_append(state->elements, box);
 
     if (type == TYPE_WINDOW)
     {
@@ -54,7 +53,8 @@ u64 ui_create_box(const char *label, ui_elem_type type, ui_elem_size_type size_t
         }
         db_stack_push(state->curr_parent, box);
     }
-
+    // do this at the last dummy
+    db_array_append(state->elements, box);
     return box.id;
 }
 
@@ -65,6 +65,7 @@ db_return_code ui_init(vector2d (*measure_text_width)(const char *text, u32 font
     state->arena              = arena;
     state->measure_text_width = measure_text_width;
     db_stack_init(state->curr_parent);
+    db_stack_init(state->layouts);
     db_array_init(state->elements);
     db_array_init(state->prev_elem_state);
     return DB_SUCCESS;
@@ -92,9 +93,14 @@ b8 ui_button(const char *label)
     return false;
 }
 
+// this is also the last call for the ui sys in the frame
 db_array(ui_elem) ui_get_render_commands()
 {
-    s32 count = db_array_get_count(state->elements);
-
-    return state->elements;
+    state->mouse_pos = (vector2d){0, 0};
+    db_stack_clear(state->layouts);
+    db_stack_clear(state->curr_parent);
+    // this will also clear the prev_elem_state
+    db_array_copy(state->prev_elem_state, state->elements);
+    db_array_clear(state->elements);
+    return state->prev_elem_state;
 }

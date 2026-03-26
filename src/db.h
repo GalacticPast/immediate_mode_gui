@@ -250,7 +250,6 @@ typedef s8 b8;
 #define asan_unpoison_memory_region(addr, size) ((void)(addr), (void)(size))
 #endif
 
-
 typedef enum db_return_code
 {
     DB_ERROR   = 0,
@@ -272,9 +271,9 @@ db_return_code __db_release_virtual_memory(void *memory, size_t size);
 #if defined(DB_PLATFORM_LINUX) || defined(DB_PLATFORM_WINDOWS)
 #define DB_PAGE_SIZE KB(4)
 #elif defined(DB_PLATFORM_MACOS) // if the mac is an apple silicon which has an default page size of 16kb
-// kind of a hack, what if the macos is apple intel ? 
+// kind of a hack, what if the macos is apple intel ?
 #define DB_PAGE_SIZE KB(16)
-#endif 
+#endif
 /*
  ▗▄▖ ▗▄▄▖ ▗▄▄▄▖▗▖  ▗▖ ▗▄▖  ▗▄▄▖
 ▐▌ ▐▌▐▌ ▐▌▐▌   ▐▛▚▖▐▌▐▌ ▐▌▐▌
@@ -300,7 +299,7 @@ typedef struct db_arena
 } db_arena;
 
 #define DB_ARENA_DEFAULT_RESERVED_MEMORY MB(64)
-#define DB_ARENA_DEFAULT_COMMITED_MEMORY DB_PAGE_SIZE 
+#define DB_ARENA_DEFAULT_COMMITED_MEMORY DB_PAGE_SIZE
 #define db_arena_init() db_arena_init_with_size((size_t)DB_ARENA_DEFAULT_COMMITED_MEMORY)
 db_arena       db_arena_init_with_size(size_t memory_size);
 void          *db_arena_alloc(db_arena *arena, size_t size);
@@ -412,9 +411,9 @@ void           __db_array_free(void **array);
     })
 
 // the function should have a signatrue like this :
-//          bool func(type* elem_to_find, type *elem_that_the_array_wants_to_check_with);
+//          b8 array_cmp(type* elem_to_find, type *elem_that_the_array_wants_to_check_with);
 
-#define db_array_find(array, elem, func_ptr)                                                                           \
+#define db_array_find(array, elem, array_cmp)                                                                          \
     ({                                                                                                                 \
         ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
         __typeof__(array) _res   = NULL;                                                                               \
@@ -423,7 +422,7 @@ void           __db_array_free(void **array);
         s64 count = header->count;                                                                                     \
         for (s64 i = 0; i < count; i++)                                                                                \
         {                                                                                                              \
-            if (func_ptr(&elem, &array[i]))                                                                            \
+            if (array_cmp(&elem, &array[i]))                                                                           \
             {                                                                                                          \
                 _res = &array[i];                                                                                      \
                 break;                                                                                                 \
@@ -432,7 +431,7 @@ void           __db_array_free(void **array);
         _res;                                                                                                          \
     })
 
-#define db_array_copy(array)                                                                                           \
+#define db_array_duplicate(array)                                                                                      \
     ({                                                                                                                 \
         ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
         db_array(__typeof__(*array)) _res = NULL;                                                                      \
@@ -446,6 +445,19 @@ void           __db_array_free(void **array);
         }                                                                                                              \
         _res;                                                                                                          \
     })
+
+#define db_array_copy(arr_dest, arr_src)                                                                               \
+    do                                                                                                                 \
+    {                                                                                                                  \
+        ASSERT_WITH_MSG(arr_dest != NULL, "Destination array is NULL");                                                \
+        ASSERT_WITH_MSG(arr_src != NULL, "Source array is NULL");                                                      \
+        db_array_clear(arr_dest);                                                                                      \
+        s64 count = db_array_get_count(arr_src);                                                                       \
+        for (s64 i = 0; i < count; i++)                                                                                \
+        {                                                                                                              \
+            db_array_append(arr_dest, arr_src[i]);                                                                     \
+        }                                                                                                              \
+    } while (0);
 
 // i dont reset the array'str length so it might be wasteful.
 // for example in the first instance we used 1gb data for the array.
@@ -578,9 +590,7 @@ void db_string_set(db_string str, char const *cstr);
 
 #define DB_HASH_SEED 0x31415926
 #define db_hash_string(data) db_murmur64A_seed(data, strlen(data), DB_HASH_SEED)
-u64 db_murmur64A_seed(const void *key, u64 len, u64 seed);
-
-u64 db_murmur64_seed(void const *data_, size_t len, u64 seed);
+u64 db_murmur64A_seed(void const *const key, u64 len, u64 seed);
 
 /*
 ▗▄▄▄▖▗▖  ▗▖▗▄▄▖ ▗▖   ▗▄▄▄▖▗▖  ▗▖▗▄▄▄▖▗▖  ▗▖▗▄▄▄▖▗▄▖▗▄▄▄▖▗▄▄▄▖ ▗▄▖ ▗▖  ▗▖
@@ -592,7 +602,6 @@ u64 db_murmur64_seed(void const *data_, size_t len, u64 seed);
 
 #ifdef DB_IMPLEMENTATION
 // verify later on though if i could have huge pages or not
-
 
 void *__db_reserve_virtual_memory(size_t reserve_memory_size)
 {
@@ -919,7 +928,7 @@ void __db_array_free(void **array)
 #define DB_rotate_left(val, n) (((val) << (n)) | ((val) >> (db_SIZE_T_BITS - (n))))
 #define DB_rotate_right(val, n) (((val) >> (n)) | ((val) << (db_SIZE_T_BITS - (n))))
 
-u64 db_murmur64A_seed(const void *key, u64 len, u64 seed)
+u64 db_murmur64A_seed(void const *const key, u64 len, u64 seed)
 {
     const u64 m = 0xc6a4a7935bd1e995LLU;
     const int r = 47;
@@ -932,7 +941,6 @@ u64 db_murmur64A_seed(const void *key, u64 len, u64 seed)
     while (data != end)
     {
         u64 k = 0;
-        memcpy(&k, data, 8);
         data++;
         k *= m;
         k ^= k >> r;
@@ -1135,7 +1143,7 @@ void db_string_free(db_string str)
 }
 db_string db_string_duplicate(db_string const str)
 {
-    db_string new_str = db_array_copy(str);
+    db_string new_str = db_array_duplicate(str);
     s64       count   = db_array_get_count(new_str);
     // hmmm it will be zero there too but lets just me more explicit
     new_str[count]    = '\0';

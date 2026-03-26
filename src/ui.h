@@ -96,11 +96,14 @@ typedef struct
 typedef struct
 {
     vector2d mouse_pos;
+    // this is just used once actually ?
+    // we call this and ask for mem only when we do ui_init
     db_arena arena;
 
     db_stack(ui_layout) layouts;
     db_stack(ui_elem) curr_parent;
     db_array(ui_elem) elements;
+    // previous frame elements
     db_array(ui_elem) prev_elem_state;
     vector2d (*measure_text_width)(const char *text, u32 font_size);
 } ui_state;
