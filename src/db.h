@@ -329,6 +329,7 @@ typedef struct db_array_header
 #define db_array_free(array) __db_array_free((void **)&array)
 #define db_array_get_header(array) (db_array_header *)((char *)array - (sizeof(db_array_header)))
 #define db_array_get_count(array) (db_array_get_header(array))->count
+#define db_array_set_count(array, n) (db_array_get_header(array))->count = n
 #define db_array_get_capacity(array)                                                                                   \
     (db_array_get_header(array))->total_length / (db_array_get_header(array))->type_size
 db_return_code __db_array_resize(void **array);

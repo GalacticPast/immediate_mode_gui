@@ -2,7 +2,8 @@
 
 static ui_state *state;
 
-b8 array_elem_compare(ui_elem *find, ui_elem *with)
+void __ui_calculate_element_sizes();
+b8   array_elem_compare(ui_elem *find, ui_elem *with)
 {
     ASSERT_WITH_MSG(find != NULL, "The elem that you want to find is NULL");
     ASSERT_WITH_MSG(with != NULL, "This is a bug, Idk how this happened. Array should never pass a null to the comp ");
@@ -11,49 +12,39 @@ b8 array_elem_compare(ui_elem *find, ui_elem *with)
 
 u64 ui_create_box(const char *label, ui_elem_type type, ui_elem_size_type size_type, ui_elem_action_type action_type)
 {
-    ui_elem box    = {};
-    ui_elem parent = {.id = 0};
+    ui_elem box = {};
+
+    // see if there is a parent for this
+    ui_elem parent = {.index = 0};
+
     if (db_stack_get_count(state->curr_parent))
     {
         parent = db_stack_peek(state->curr_parent);
     }
 
-    box.id              = db_hash_string(label);
-    ui_elem *prev_state = db_array_find(state->prev_elem_state, box, array_elem_compare);
-
-    if (prev_state != NULL)
-    {
-        memcpy(&box, prev_state, sizeof(ui_elem));
-    }
-    else
-    {
-        u64 parent_index = 0;
-        if (type != TYPE_WINDOW)
-        {
-            parent_index = parent.index;
-        }
-        box.parent_index = parent_index;
-        box.type         = type;
-        box.action_type  = action_type;
-        box.size_type    = size_type;
-        box.label        = label;
-    }
-
-    box.index = db_array_get_count(state->elements);
+    // set some state for the box
+    box.id           = db_hash_string(label);
+    // it doesnt matter if the parent.id is 0 because 0 is the sentinel node
+    box.parent_index = parent.index;
+    box.type         = type;
+    box.action_type  = action_type;
+    box.size_type    = size_type;
+    box.label        = label;
+    box.index        = db_array_get_count(state->elements);
 
     if (type == TYPE_WINDOW)
     {
-#if 1
-        box.dimensions = (rectangle){50, 20};
-        box.pos        = (vector3d){50, 50, 0};
-#endif
+        // if there is already another window then clear the stack for that window
+        // because it means theat we are dont processing that window for that frame
         if (db_stack_get_count(state->curr_parent))
         {
             db_stack_clear(state->curr_parent);
         }
         db_stack_push(state->curr_parent, box);
     }
-    // do this at the last dummy
+    // calculate size
+
+    // do this at the last. Dummy
     db_array_append(state->elements, box);
     return box.id;
 }
@@ -68,6 +59,10 @@ db_return_code ui_init(vector2d (*measure_text_width)(const char *text, u32 font
     db_stack_init(state->layouts);
     db_array_init(state->elements);
     db_array_init(state->prev_elem_state);
+
+    // sentinel node
+    db_array_append(state->elements, (ui_elem){0});
+    db_array_append(state->prev_elem_state, (ui_elem){0});
     return DB_SUCCESS;
 }
 
@@ -102,5 +97,8 @@ db_array(ui_elem) ui_get_render_commands()
     // this will also clear the prev_elem_state
     db_array_copy(state->prev_elem_state, state->elements);
     db_array_clear(state->elements);
+
+    db_array_append(state->elements, (ui_elem){});
+
     return state->prev_elem_state;
 }
