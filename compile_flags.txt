@@ -1,4 +1,3 @@
 -xc
 -Iexternal/raylib/include
--DDB_IMPLEMENTATION
 

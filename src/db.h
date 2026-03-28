@@ -108,6 +108,8 @@ typedef s8 b8;
 #define min_s16 ((s16)0x8000)
 #define min_s8 ((s8)0x80)
 
+#define defer_loop(a, b) for (b8 i = 0, res = a; i != 1; i++, b)
+
 #define bitmask1 0x00000001
 #define bitmask2 0x00000003
 #define bitmask3 0x00000007
@@ -336,6 +338,30 @@ db_return_code __db_array_resize(void **array);
 db_return_code __db_array_init(void **array, size_t type_size);
 void           __db_array_free(void **array);
 
+#define db_array_get_index(array, index)                                                                               \
+    ({                                                                                                                 \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
+        db_array_header *header = db_array_get_header(array);                                                          \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
+        ASSERT_WITH_MSG(index < header->count, "Index out of bounds.")                                                 \
+        __typeof__(array) _res = NULL;                                                                                 \
+        if (header->count < index)                                                                                     \
+        {                                                                                                              \
+            _res = &array[index];                                                                                      \
+        }                                                                                                              \
+        *(_res);                                                                                                       \
+    })
+
+#define db_array_get_index_ptr(array, index)                                                                           \
+    ({                                                                                                                 \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
+        db_array_header *header = db_array_get_header(array);                                                          \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
+        ASSERT_WITH_MSG(index < header->count, "Index out of bounds.")                                                 \
+        __typeof__(array) _res = &array[index];                                                                        \
+        _res;                                                                                                          \
+    })
+
 #define db_array_append(array, element)                                                                                \
     do                                                                                                                 \
     {                                                                                                                  \
@@ -409,6 +435,16 @@ void           __db_array_free(void **array);
         ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
         ASSERT_WITH_MSG((header->count > 0), "array has no elements");                                                 \
         _res = array[header->count - 1];                                                                               \
+    })
+
+#define db_array_get_last_ptr(array)                                                                                   \
+    ({                                                                                                                 \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
+        db_array_header *header = db_array_get_header(array);                                                          \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
+        ASSERT_WITH_MSG((header->count > 0), "array has no elements");                                                 \
+        const __typeof__(array) _res = &array[header->count - 1];                                                      \
+        _res;                                                                                                          \
     })
 
 // the function should have a signatrue like this :
@@ -491,6 +527,7 @@ void           __db_array_free(void **array);
 #define db_stack_push(stack, elem) db_array_append(stack, elem)
 #define db_stack_pop(stack) db_array_pop(stack)
 #define db_stack_peek(stack) db_array_get_last(stack)
+#define db_stack_peek_ptr(stack) db_array_get_last_ptr(stack)
 #define db_stack_free(stack) db_array_free(stack)
 #define db_stack_get_count(stack) db_array_get_count(stack)
 #define db_stack_clear(stack) db_array_clear(stack)
@@ -602,6 +639,7 @@ u64 db_murmur64A_seed(void const *const key, u64 len, u64 seed);
 */
 
 #ifdef DB_IMPLEMENTATION
+#undef DB_IMPLEMENTATION
 // verify later on though if i could have huge pages or not
 
 void *__db_reserve_virtual_memory(size_t reserve_memory_size)
@@ -862,11 +900,6 @@ db_return_code db_arena_free(db_arena *arena)
     db_return_code res = __db_release_virtual_memory(arena->memory, total_reserved_size);
     ASSERT(res != DB_ERROR);
 
-    arena->allocated_till_now = 0;
-    arena->curr_page_offset   = 0;
-    arena->total_size         = 0;
-    arena->memory             = NULL;
-    arena->curr_mem_pos       = 0;
     return DB_SUCCESS;
 }
 
