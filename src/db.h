@@ -47,12 +47,7 @@ typedef s8 b8;
    ▐▌ ▐▌ ▝▀▚▖▐▛▀▀▘▐▛▀▀▘▐▌ ▐▌▐▌       ▐▌  ▐▌▐▛▀▜▌▐▌   ▐▛▀▚▖▐▌ ▐▌ ▝▀▚▖
    ▝▚▄▞▘▗▄▄▞▘▐▙▄▄▖▐▌   ▝▚▄▞▘▐▙▄▄▖    ▐▌  ▐▌▐▌ ▐▌▝▚▄▄▖▐▌ ▐▌▝▚▄▞▘▗▄▄▞▘
 */
-
-#if defined(DB_PLATFORM_LINUX)
-#define DEBUG_BREAK asm("int $3")
-#elif defined(DB_PLATFORM_MACOS)
 #define DEBUG_BREAK __builtin_trap()
-#endif
 
 #define ASSERT(expr)                                                                                                   \
     {                                                                                                                  \
@@ -60,7 +55,7 @@ typedef s8 b8;
         {                                                                                                              \
             if (!(expr))                                                                                               \
             {                                                                                                          \
-                printf("ASSERTion failure: %str:%d on %str\n", __FILE__, __LINE__, #expr);                             \
+                printf("ASSERTion failure: %s:%d on %s\n", __FILE__, __LINE__, #expr);                                 \
                 DEBUG_BREAK;                                                                                           \
             }                                                                                                          \
         } while (0);                                                                                                   \
@@ -72,8 +67,8 @@ typedef s8 b8;
         {                                                                                                              \
             if (!(expr))                                                                                               \
             {                                                                                                          \
-                printf("%str\n.", msg);                                                                                \
-                printf("ASSERTion failure: %str:%d on %str\n", __FILE__, __LINE__, #expr);                             \
+                printf("%s\n.", msg);                                                                                  \
+                printf("ASSERTion failure: %str:%d on %s\n", __FILE__, __LINE__, #expr);                               \
                 DEBUG_BREAK;                                                                                           \
             }                                                                                                          \
         } while (0);                                                                                                   \
@@ -84,6 +79,7 @@ typedef s8 b8;
 
 #define s32_min -2147483648
 #define s32_max 2147483647
+// hmmmm we need a floating point max too ?
 #define max(n, m) (s64) n >= (s64)m ? (s64)n : (s64)m
 
 #define KB(n) ((s32)n * 1024)
@@ -176,6 +172,7 @@ typedef s8 b8;
 #define bitmask63 0x7fffffffffffffffull
 #define bitmask64 0xffffffffffffffffull
 
+#define bit0 0
 #define bit1 (1u << 0)
 #define bit2 (1u << 1)
 #define bit3 (1u << 2)
@@ -337,6 +334,9 @@ typedef struct db_array_header
 db_return_code __db_array_resize(void **array);
 db_return_code __db_array_init(void **array, size_t type_size);
 void           __db_array_free(void **array);
+
+#define db_array_for_each_ptr(array, i, iter)                                                                          \
+    for (i = 0, elem = &array[i]; i < db_array_get_count(array); i++, elem = &array[i])
 
 #define db_array_get_index(array, index)                                                                               \
     ({                                                                                                                 \

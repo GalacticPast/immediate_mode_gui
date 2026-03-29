@@ -28,7 +28,7 @@ int main()
 
         ClearBackground(BLACK);
 
-        if (ui_window("Hello world"))
+        if (ui_window_ext("Hello world", .position = {100, 100}))
         {
             ui_row()
             {
@@ -43,10 +43,12 @@ int main()
         for (s32 i = 0; i < db_array_get_count(elems); i++)
         {
 #if 1
-            DrawRectangleLines(elems[i].pos.x, elems[i].pos.y, elems[i].dimensions.width, elems[i].dimensions.height,
-                               WHITE);
+            ui_elem *elem = &elems[i];
+            DrawRectangleLines(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
+                               elems[i].dimensions.height, WHITE);
 #else
-            DrawRectangle(elems[i].pos.x, elems[i].pos.y, elems[i].dimensions.width, elems[i].dimensions.height, WHITE);
+            DrawRectangle(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
+                          elems[i].dimensions.height, WHITE);
 #endif
         }
 
