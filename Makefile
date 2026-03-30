@@ -9,8 +9,9 @@ ifeq ($(OS),Windows_NT)
 
 	DIR := $(subst /,\,${CURDIR})
 	INCLUDES  := -I./external/raylib/include 
-	LINKER_FLAGS := -L./external/raylib/lib/windows/ -lraylib -lkernel32 -lgdi32 -luser32 -ladvapi32 -ltdh -lwinmm -lm 
-	COMPILER_FLAGS := -Wall -Werror -Wextra -g -O0 -Wno-system-headers -Wno-unused-but-set-variable -Wno-unused-variable -Wno-varargs -Wno-unused-private-field -Wno-unused-parameter -Wno-unused-function -fsanitize=undefined -fsanitize-trap
+
+	LINKER_FLAGS := -L./external/raylib/lib/windows/ -lraylib -lkernel32 -lgdi32 -luser32 -ladvapi32 -ltdh -lwinmm -lshell32 -Wl,/NODEFAULTLIB:libcmt
+	COMPILER_FLAGS := -Wall -Werror -Wextra -g -O0 -Wno-system-headers  -Wno-varargs -Wno-unused-private-field -Wno-unused-parameter -Wno-unused-function -fsanitize=undefined -fsanitize-trap
 
 	rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 	SRC_FILES := $(call rwildcard,$(SRC)/,*.c)

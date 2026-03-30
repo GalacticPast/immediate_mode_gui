@@ -5,22 +5,33 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
+#ifdef _WIN32
+    #include <io.h>
+    #include <process.h>
+#else
+    #include <unistd.h>
+#endif
 
-#if  defined(__win32_)  || defined(__WIN32)
+#if  defined(__win32_)  || defined(__WIN32) || defined (_WIN32)
+
 #define DB_PLATFORM_WINDOWS
 #define NOGDI 
 #define NOUSER
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>      
+
 #elif __linux__
+
 #define DB_PLATFORM_LINUX
 #include <sanitizer/asan_interface.h>
 #include <sys/mman.h>
+
 #elif __APPLE__
+
 #define DB_PLATFORM_MACOS
 #include <sanitizer/asan_interface.h>
 #include <sys/mman.h>
+
 #endif
 
 /*
@@ -108,7 +119,7 @@ typedef s8 b8;
 #define min_s16 ((s16)0x8000)
 #define min_s8 ((s8)0x80)
 
-#define defer_loop(a, b) for (b8 i = 0, res = a; i != 1; i++, b)
+#define defer_loop(a, b) for (b8 i = 0, res = a; i != 1 && res ; i++, b)
 
 #define bitmask1 0x00000001
 #define bitmask2 0x00000003

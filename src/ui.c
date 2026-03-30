@@ -163,7 +163,7 @@ b8 __ui_window_impl(const char *title, ui_window_desc *desc)
     }
 
     u64 id = ui_create_box(title, TYPE_WINDOW, size_type, action_type, position, dimensions);
-
+    id += 1;
     return true;
 }
 
@@ -171,6 +171,7 @@ b8 ui_button(const char *label)
 {
     u64 id = ui_create_box(label, TYPE_BUTTON, TYPE_BASED_ON_TEXT_SIZE, TYPE_ACTION_PRESSABLE, (vector2d){0, 0},
                            (rectangle){0, 0});
+    id += 1;
 
     return true;
 }
@@ -330,7 +331,6 @@ void __ui_calculate_element_sizes()
     static s32 padding_y = 5;
 
     u64       length     = db_array_get_count(state->elements);
-    rectangle dimensions = {};
 
     ui_elem *elem         = &state->elements[0];
     ui_elem *parent       = &state->elements[0];
