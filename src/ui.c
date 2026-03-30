@@ -387,6 +387,28 @@ void __ui_calculate_element_sizes()
             }
             else // then its a ui primitive
             {
+                if (parent->first_child_index == elem->index)
+                {
+                    parent->dimensions.width += padding_x; // kind of a hack, terrible for performance :)
+                    // im doing this because we are not talking into account of the first initial padding
+                    // for example
+                    /*
+                        if we dont add that additional padding at the start for the first child our layout would be like this
+                        our first button would look like its squised to the right
+                       +--------+-----------------------------+
+                       |button |pad|button |pad| button |pad|
+                       +--------+-----------------------------+
+                        if we add it at first
+                        +--------+---------------------------------+
+                       ||pad| button |pad| button |pad| button |pad|
+                       +--------+----------------------------------+
+                     *
+                     *
+                     *
+                     *
+                     *  wait I think it's the opposite????
+                    */
+                }
                 if (elem->axis_type & TYPE_AXIS_ROW)
                 {
                     parent->dimensions.width  += elem->dimensions.width + padding_x;
