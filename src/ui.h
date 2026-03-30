@@ -60,9 +60,10 @@ typedef enum
 
 typedef enum
 {
-    TYPE_AXIS_NONE   = bit0,
-    TYPE_AXIS_COLUMN = bit1,
-    TYPE_AXIS_ROW    = bit2,
+    TYPE_AXIS_NONE            = bit0,
+    TYPE_AXIS_COLUMN          = bit1,
+    TYPE_AXIS_ROW             = bit2,
+    TYPE_AXIS_BASED_ON_PARENT = bit3,
 } ui_axis_type;
 
 typedef struct
@@ -75,8 +76,6 @@ typedef struct
 
 typedef struct
 {
-    ui_axis_type axis;
-
     // this is also a linked list/intrusive list
     u64 id;
     s64 index; // index to itself
@@ -86,13 +85,17 @@ typedef struct
     s64 first_child_index;
     s64 next_sibling_index;
     s64 prev_sibling_index;
+    s64 child_count; // number of children
 
     // element traits
     ui_elem_type        type;
     ui_elem_action_type action_type;
     ui_elem_size_type   size_type;
-    ui_axis_type        axis_type; // which axis does this elem follow
-                                   // this will affect how it will be laid out in the final.
+    ui_axis_type        axis_type;       // which axis does this elem follow
+    ui_axis_type        axis_child_type; // which axis does this elements children follow
+                                         // this will affect how it will be laid out in the final.
+                                         //
+
     // position stuff
     vector3d  position; // absolute position. the z val used for windows/panels sorting.
     rectangle dimensions;
@@ -122,18 +125,18 @@ db_return_code ui_update_mouse(vector2d mouse_pos, s32 mouse_button_state);
 // this should be called in the end. Because this will reset the ui.
 db_array(ui_elem) ui_get_render_commands();
 
+#define ui_row() defer_loop(__ui_row_begin(), __ui_row_end())
+#define ui_column() defer_loop(__ui_column_begin(), __ui_column_end())
+
+#define ui_window(title) defer_loop(__ui_window_begin(title, &(ui_window_desc){0}), __ui_window_end())
+#define ui_window_ext(title, ...) defer_loop(__ui_window_begin(title, &(ui_window_desc){__VA_ARGS__}), __ui_window_end())
+
+b8 __ui_window_begin(const char *title, ui_window_desc *desc);
+b8 __ui_window_end(void);
 b8 __ui_row_begin(void);
 b8 __ui_row_end(void);
 b8 __ui_column_begin(void);
 b8 __ui_column_end(void);
-
-#define ui_row() defer_loop(__ui_row_begin(), __ui_row_end())
-#define ui_column() defer_loop(__ui_column_begin(), __ui_column_end())
-
-#define ui_window(title) __ui_window_impl(title, &(ui_window_desc){0})
-#define ui_window_ext(title, ...) __ui_window_impl(title, &(ui_window_desc){__VA_ARGS__})
-
-b8 __ui_window_impl(const char *title, ui_window_desc *desc);
 
 b8 ui_label(const char *label);
 // cannot be a standalone button, it has to be a part of a window/panel

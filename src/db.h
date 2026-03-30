@@ -6,19 +6,19 @@
 #include <stdio.h>
 #include <string.h>
 #ifdef _WIN32
-    #include <io.h>
-    #include <process.h>
+#include <io.h>
+#include <process.h>
 #else
-    #include <unistd.h>
+#include <unistd.h>
 #endif
 
-#if  defined(__win32_)  || defined(__WIN32) || defined (_WIN32)
+#if defined(__win32_) || defined(__WIN32) || defined(_WIN32)
 
 #define DB_PLATFORM_WINDOWS
-#define NOGDI 
+#define NOGDI
 #define NOUSER
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>      
+#include <windows.h>
 
 #elif __linux__
 
@@ -64,29 +64,29 @@ typedef s8 b8;
 */
 #define DEBUG_BREAK __builtin_trap()
 
-#define ASSERT(expr)                                                                                                   \
-    {                                                                                                                  \
-        do                                                                                                             \
-        {                                                                                                              \
-            if (!(expr))                                                                                               \
-            {                                                                                                          \
-                printf("ASSERTion failure: %s:%d on %s\n", __FILE__, __LINE__, #expr);                                 \
-                DEBUG_BREAK;                                                                                           \
-            }                                                                                                          \
-        } while (0);                                                                                                   \
+#define ASSERT(expr)                                                                   \
+    {                                                                                  \
+        do                                                                             \
+        {                                                                              \
+            if (!(expr))                                                               \
+            {                                                                          \
+                printf("ASSERTion failure: %s:%d on %s\n", __FILE__, __LINE__, #expr); \
+                DEBUG_BREAK;                                                           \
+            }                                                                          \
+        } while (0);                                                                   \
     }
 
-#define ASSERT_WITH_MSG(expr, msg)                                                                                     \
-    {                                                                                                                  \
-        do                                                                                                             \
-        {                                                                                                              \
-            if (!(expr))                                                                                               \
-            {                                                                                                          \
-                printf("%s\n.", msg);                                                                                  \
-                printf("ASSERTion failure: %str:%d on %s\n", __FILE__, __LINE__, #expr);                               \
-                DEBUG_BREAK;                                                                                           \
-            }                                                                                                          \
-        } while (0);                                                                                                   \
+#define ASSERT_WITH_MSG(expr, msg)                                                       \
+    {                                                                                    \
+        do                                                                               \
+        {                                                                                \
+            if (!(expr))                                                                 \
+            {                                                                            \
+                printf("%s\n.", msg);                                                    \
+                printf("ASSERTion failure: %str:%d on %s\n", __FILE__, __LINE__, #expr); \
+                DEBUG_BREAK;                                                             \
+            }                                                                            \
+        } while (0);                                                                     \
     }
 
 #define false 0
@@ -119,7 +119,7 @@ typedef s8 b8;
 #define min_s16 ((s16)0x8000)
 #define min_s8 ((s8)0x80)
 
-#define defer_loop(a, b) for (b8 i = 0, res = a; i != 1 && res ; i++, b)
+#define defer_loop(a, b) for (b8 i = 0, res = a; i != 1 && res; i++, b)
 
 #define bitmask1 0x00000001
 #define bitmask2 0x00000003
@@ -344,60 +344,60 @@ typedef struct db_array_header
 #define db_array_get_header(array) (db_array_header *)((char *)array - (sizeof(db_array_header)))
 #define db_array_get_count(array) (db_array_get_header(array))->count
 #define db_array_set_count(array, n) (db_array_get_header(array))->count = n
-#define db_array_get_capacity(array)                                                                                   \
+#define db_array_get_capacity(array) \
     (db_array_get_header(array))->total_length / (db_array_get_header(array))->type_size
 db_return_code __db_array_resize(void **array);
 db_return_code __db_array_init(void **array, size_t type_size);
 void           __db_array_free(void **array);
 
-#define db_array_for_each_ptr(array, i, iter)                                                                          \
+#define db_array_for_each_ptr(array, i, iter) \
     for (i = 0, elem = &array[i]; i < db_array_get_count(array); i++, elem = &array[i])
 
-#define db_array_get_index(array, index)                                                                               \
-    ({                                                                                                                 \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        db_array_header *header = db_array_get_header(array);                                                          \
-        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
-        ASSERT_WITH_MSG(index < header->count, "Index out of bounds.")                                                 \
-        __typeof__(array) _res = NULL;                                                                                 \
-        if (header->count < index)                                                                                     \
-        {                                                                                                              \
-            _res = &array[index];                                                                                      \
-        }                                                                                                              \
-        *(_res);                                                                                                       \
+#define db_array_get_index(array, index)                                                   \
+    ({                                                                                     \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                   \
+        db_array_header *header = db_array_get_header(array);                              \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(."); \
+        ASSERT_WITH_MSG(index < header->count, "Index out of bounds.")                     \
+        __typeof__(array) _res = NULL;                                                     \
+        if (header->count < index)                                                         \
+        {                                                                                  \
+            _res = &array[index];                                                          \
+        }                                                                                  \
+        *(_res);                                                                           \
     })
 
-#define db_array_get_index_ptr(array, index)                                                                           \
-    ({                                                                                                                 \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        db_array_header *header = db_array_get_header(array);                                                          \
-        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
-        ASSERT_WITH_MSG(index < header->count, "Index out of bounds.")                                                 \
-        __typeof__(array) _res = &array[index];                                                                        \
-        _res;                                                                                                          \
+#define db_array_get_index_ptr(array, index)                                               \
+    ({                                                                                     \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                   \
+        db_array_header *header = db_array_get_header(array);                              \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(."); \
+        ASSERT_WITH_MSG(index < header->count, "Index out of bounds.")                     \
+        __typeof__(array) _res = &array[index];                                            \
+        _res;                                                                              \
     })
 
-#define db_array_append(array, element)                                                                                \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        db_array_header *header = db_array_get_header(array);                                                          \
-        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
-        if (header->count + 1 >= header->total_length)                                                                 \
-        {                                                                                                              \
-            __db_array_resize((void **)&array);                                                                        \
-        }                                                                                                              \
-        array[header->count++] = element;                                                                              \
+#define db_array_append(array, element)                                                    \
+    do                                                                                     \
+    {                                                                                      \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                   \
+        db_array_header *header = db_array_get_header(array);                              \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(."); \
+        if (header->count + 1 >= header->total_length)                                     \
+        {                                                                                  \
+            __db_array_resize((void **)&array);                                            \
+        }                                                                                  \
+        array[header->count++] = element;                                                  \
     } while (0);
 
-#define db_array_pop(array)                                                                                            \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        db_array_header *header = db_array_get_header(array);                                                          \
-        ASSERT_WITH_MSG(header != NULL, "array header is NULL. ");                                                     \
-        ASSERT_WITH_MSG(header->count != 0, "array has no elements yet.");                                             \
-        header->count--;                                                                                               \
+#define db_array_pop(array)                                                \
+    do                                                                     \
+    {                                                                      \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                   \
+        db_array_header *header = db_array_get_header(array);              \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. ");         \
+        ASSERT_WITH_MSG(header->count != 0, "array has no elements yet."); \
+        header->count--;                                                   \
     } while (0);
 
 // 0 1 2 3 4 5 6
@@ -405,110 +405,110 @@ void           __db_array_free(void **array);
 // removes 2 3 4 5
 
 // removes from the starting index + num_elems elements
-#define db_array_remove_range(array, start, num_elems)                                                                 \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        db_array_header *header = db_array_get_header(array);                                                          \
-        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
-        ASSERT_WITH_MSG((start) < header->count, "starting index is greater than array length");                       \
-        /*get the remaining length of the array after start + num_elems                                                \
-         *  for example: start = 2, num_elems = 3, v = n0 n1 n2 n3 n4 n5 n6 ... n                                      \
-         *     v = n0 n1 n2 n3 n4 n5 n6 ...    we want to remove elmems n2, n3, n4                                     \
-         * to get the length of the n5+ array. we have to do v.count -   len(n0,n1,...n4)                              \
-         * length of the whole array - the length from the starting of array up to the last element we want to remove  \
-         * */                                                                                                          \
-        s64 rem_length = header->count - ((start) + (num_elems));                                                      \
-        ASSERT(rem_length >= 0);                                                                                       \
-        memmove(&array[(start)], &array[(start) + (num_elems)], rem_length * header->type_size);                       \
-        header->count -= num_elems;                                                                                    \
-        memset(&array[header->count], 0, num_elems * header->type_size);                                               \
+#define db_array_remove_range(array, start, num_elems)                                                                \
+    do                                                                                                                \
+    {                                                                                                                 \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                              \
+        db_array_header *header = db_array_get_header(array);                                                         \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                            \
+        ASSERT_WITH_MSG((start) < header->count, "starting index is greater than array length");                      \
+        /*get the remaining length of the array after start + num_elems                                               \
+         *  for example: start = 2, num_elems = 3, v = n0 n1 n2 n3 n4 n5 n6 ... n                                     \
+         *     v = n0 n1 n2 n3 n4 n5 n6 ...    we want to remove elmems n2, n3, n4                                    \
+         * to get the length of the n5+ array. we have to do v.count -   len(n0,n1,...n4)                             \
+         * length of the whole array - the length from the starting of array up to the last element we want to remove \
+         * */                                                                                                         \
+        s64 rem_length = header->count - ((start) + (num_elems));                                                     \
+        ASSERT(rem_length >= 0);                                                                                      \
+        memmove(&array[(start)], &array[(start) + (num_elems)], rem_length * header->type_size);                      \
+        header->count -= num_elems;                                                                                   \
+        memset(&array[header->count], 0, num_elems * header->type_size);                                              \
     } while (0);
 
-#define db_array_insert(array, index, element)                                                                         \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        db_array_header *header = db_array_get_header(array);                                                          \
-        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
-        ASSERT_WITH_MSG((index < header->count), "index out of bounds");                                               \
-        if (header->count + 1 >= header->total_length)                                                                 \
-        {                                                                                                              \
-            __db_array_resize((void **)&array);                                                                        \
-        }                                                                                                              \
-        s64 move_length = header->count - index;                                                                       \
-        memmove(&array[index + 1], &array[index], move_length * header->type_size);                                    \
-        array[index] = element;                                                                                        \
-        header->count++;                                                                                               \
+#define db_array_insert(array, index, element)                                             \
+    do                                                                                     \
+    {                                                                                      \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                   \
+        db_array_header *header = db_array_get_header(array);                              \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(."); \
+        ASSERT_WITH_MSG((index < header->count), "index out of bounds");                   \
+        if (header->count + 1 >= header->total_length)                                     \
+        {                                                                                  \
+            __db_array_resize((void **)&array);                                            \
+        }                                                                                  \
+        s64 move_length = header->count - index;                                           \
+        memmove(&array[index + 1], &array[index], move_length * header->type_size);        \
+        array[index] = element;                                                            \
+        header->count++;                                                                   \
     } while (0);
 
-#define db_array_get_last(array)                                                                                       \
-    ({                                                                                                                 \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        __typeof__(*array) _res;                                                                                       \
-        db_array_header   *header = db_array_get_header(array);                                                        \
-        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
-        ASSERT_WITH_MSG((header->count > 0), "array has no elements");                                                 \
-        _res = array[header->count - 1];                                                                               \
+#define db_array_get_last(array)                                                           \
+    ({                                                                                     \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                   \
+        __typeof__(*array) _res;                                                           \
+        db_array_header   *header = db_array_get_header(array);                            \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(."); \
+        ASSERT_WITH_MSG((header->count > 0), "array has no elements");                     \
+        _res = array[header->count - 1];                                                   \
     })
 
-#define db_array_get_last_ptr(array)                                                                                   \
-    ({                                                                                                                 \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        db_array_header *header = db_array_get_header(array);                                                          \
-        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
-        ASSERT_WITH_MSG((header->count > 0), "array has no elements");                                                 \
-        const __typeof__(array) _res = &array[header->count - 1];                                                      \
-        _res;                                                                                                          \
+#define db_array_get_last_ptr(array)                                                       \
+    ({                                                                                     \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                   \
+        db_array_header *header = db_array_get_header(array);                              \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(."); \
+        ASSERT_WITH_MSG((header->count > 0), "array has no elements");                     \
+        const __typeof__(array) _res = &array[header->count - 1];                          \
+        _res;                                                                              \
     })
 
 // the function should have a signatrue like this :
 //          b8 array_cmp(type* elem_to_find, type *elem_that_the_array_wants_to_check_with);
 
-#define db_array_find(array, elem, array_cmp)                                                                          \
-    ({                                                                                                                 \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        __typeof__(array) _res   = NULL;                                                                               \
-        db_array_header  *header = db_array_get_header(array);                                                         \
-        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
-        s64 count = header->count;                                                                                     \
-        for (s64 i = 0; i < count; i++)                                                                                \
-        {                                                                                                              \
-            if (array_cmp(&elem, &array[i]))                                                                           \
-            {                                                                                                          \
-                _res = &array[i];                                                                                      \
-                break;                                                                                                 \
-            }                                                                                                          \
-        }                                                                                                              \
-        _res;                                                                                                          \
+#define db_array_find(array, elem, array_cmp)                                              \
+    ({                                                                                     \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                   \
+        __typeof__(array) _res   = NULL;                                                   \
+        db_array_header  *header = db_array_get_header(array);                             \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(."); \
+        s64 count = header->count;                                                         \
+        for (s64 i = 0; i < count; i++)                                                    \
+        {                                                                                  \
+            if (array_cmp(&elem, &array[i]))                                               \
+            {                                                                              \
+                _res = &array[i];                                                          \
+                break;                                                                     \
+            }                                                                              \
+        }                                                                                  \
+        _res;                                                                              \
     })
 
-#define db_array_duplicate(array)                                                                                      \
-    ({                                                                                                                 \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        db_array(__typeof__(*array)) _res = NULL;                                                                      \
-        db_array_init(_res);                                                                                           \
-        db_array_header *cpy_arr_header = db_array_get_header(array);                                                  \
-        ASSERT_WITH_MSG(cpy_arr_header != NULL, "passed on array header is NULL. this is a serius bug :(.");           \
-        s64 count = cpy_arr_header->count;                                                                             \
-        for (s64 i = 0; i < count; i++)                                                                                \
-        {                                                                                                              \
-            db_array_append(_res, array[i]);                                                                           \
-        }                                                                                                              \
-        _res;                                                                                                          \
+#define db_array_duplicate(array)                                                                            \
+    ({                                                                                                       \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                     \
+        db_array(__typeof__(*array)) _res = NULL;                                                            \
+        db_array_init(_res);                                                                                 \
+        db_array_header *cpy_arr_header = db_array_get_header(array);                                        \
+        ASSERT_WITH_MSG(cpy_arr_header != NULL, "passed on array header is NULL. this is a serius bug :(."); \
+        s64 count = cpy_arr_header->count;                                                                   \
+        for (s64 i = 0; i < count; i++)                                                                      \
+        {                                                                                                    \
+            db_array_append(_res, array[i]);                                                                 \
+        }                                                                                                    \
+        _res;                                                                                                \
     })
 
-#define db_array_copy(arr_dest, arr_src)                                                                               \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        ASSERT_WITH_MSG(arr_dest != NULL, "Destination array is NULL");                                                \
-        ASSERT_WITH_MSG(arr_src != NULL, "Source array is NULL");                                                      \
-        db_array_clear(arr_dest);                                                                                      \
-        s64 count = db_array_get_count(arr_src);                                                                       \
-        for (s64 i = 0; i < count; i++)                                                                                \
-        {                                                                                                              \
-            db_array_append(arr_dest, arr_src[i]);                                                                     \
-        }                                                                                                              \
+#define db_array_copy(arr_dest, arr_src)                                \
+    do                                                                  \
+    {                                                                   \
+        ASSERT_WITH_MSG(arr_dest != NULL, "Destination array is NULL"); \
+        ASSERT_WITH_MSG(arr_src != NULL, "Source array is NULL");       \
+        db_array_clear(arr_dest);                                       \
+        s64 count = db_array_get_count(arr_src);                        \
+        for (s64 i = 0; i < count; i++)                                 \
+        {                                                               \
+            db_array_append(arr_dest, arr_src[i]);                      \
+        }                                                               \
     } while (0);
 
 // i dont reset the array'str length so it might be wasteful.
@@ -516,17 +516,17 @@ void           __db_array_free(void **array);
 // then we cleared it.  and then we didnt exceed more than a KB of usage for the array.
 // well because we had allocated a gb beforehand the array'str total length would be a gb. i dont reset that even
 // if you call db_array_clear() warning: if possible
-#define db_array_clear(array)                                                                                          \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                                               \
-        db_array_header *header = db_array_get_header(array);                                                          \
-        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(.");                             \
-        if (header->count > 0)                                                                                         \
-        {                                                                                                              \
-            memset((void *)array, 0, header->count * header->type_size);                                               \
-        }                                                                                                              \
-        header->count = 0;                                                                                             \
+#define db_array_clear(array)                                                              \
+    do                                                                                     \
+    {                                                                                      \
+        ASSERT_WITH_MSG(array != NULL, "array is NULL");                                   \
+        db_array_header *header = db_array_get_header(array);                              \
+        ASSERT_WITH_MSG(header != NULL, "array header is NULL. this is a serius bug :(."); \
+        if (header->count > 0)                                                             \
+        {                                                                                  \
+            memset((void *)array, 0, header->count * header->type_size);                   \
+        }                                                                                  \
+        header->count = 0;                                                                 \
     } while (0);
 
 /*
@@ -667,7 +667,7 @@ void *__db_reserve_virtual_memory(size_t reserve_memory_size)
 
     return ptr;
 #elif defined(DB_PLATFORM_WINDOWS)
-      ptr = VirtualAlloc(0, reserve_memory_size, MEM_RESERVE, PAGE_READWRITE); 
+    ptr = VirtualAlloc(0, reserve_memory_size, MEM_RESERVE, PAGE_READWRITE);
 #endif
     ASSERT(ptr != NULL);
     return (void *)ptr;
@@ -679,7 +679,7 @@ db_return_code __db_commit_virtual_memory(void *memory, s32 page_offset, s32 num
     s64       new_allocated_size = num_pages * DB_PAGE_SIZE;
 
 #if defined(DB_PLATFORM_LINUX) || defined(DB_PLATFORM_MACOS)
-    s32       ret_code           = mprotect((void *)next_page_base_ptr, new_allocated_size, PROT_READ | PROT_WRITE);
+    s32 ret_code = mprotect((void *)next_page_base_ptr, new_allocated_size, PROT_READ | PROT_WRITE);
     if (ret_code == -1)
     {
         printf("cannot commit: %d pages, arleady commited %d pages. increase the reserved virtual alloc size.\n",
@@ -692,15 +692,15 @@ db_return_code __db_commit_virtual_memory(void *memory, s32 page_offset, s32 num
 
     return DB_SUCCESS;
 #elif defined(DB_PLATFORM_WINDOWS)
-      b8 result = (VirtualAlloc((void *)next_page_base_ptr, new_allocated_size, MEM_COMMIT, PAGE_READWRITE) != NULL); 
+    b8 result = (VirtualAlloc((void *)next_page_base_ptr, new_allocated_size, MEM_COMMIT, PAGE_READWRITE) != NULL);
 
-      if(result == false)
-      {
-          printf("cannot commit: %d pages, arleady commited %d pages. increase the reserved virtual alloc size.\n",
-                  num_pages, page_offset);
-          ASSERT(result);
-      }
-      return DB_SUCCESS;
+    if (result == false)
+    {
+        printf("cannot commit: %d pages, arleady commited %d pages. increase the reserved virtual alloc size.\n",
+               num_pages, page_offset);
+        ASSERT(result);
+    }
+    return DB_SUCCESS;
 #endif
 }
 // i dont think i will decomit individual pages, for example for an dynamic array i am pretty sure i will not decommit
@@ -921,7 +921,7 @@ db_return_code db_arena_free(db_arena *arena)
     ASSERT(arena != NULL);
 
     // there might be the case that we allocated/commited more than db_ARENA_DEFAULT_RESERVED_MEMORY.
-    size_t total_reserved_size = max(arena->total_size, DB_ARENA_DEFAULT_RESERVED_MEMORY);
+    size_t total_reserved_size = db_max(arena->total_size, DB_ARENA_DEFAULT_RESERVED_MEMORY);
 
     db_return_code res = __db_release_virtual_memory(arena->memory, total_reserved_size);
     ASSERT(res != DB_ERROR);
@@ -1014,21 +1014,21 @@ u64 db_murmur64A_seed(void const *const key, u64 len, u64 seed)
 
     switch (len & 7)
     {
-        case 7:
-            h ^= (u64)(data2[6]) << 48;
-        case 6:
-            h ^= (u64)(data2[5]) << 40;
-        case 5:
-            h ^= (u64)(data2[4]) << 32;
-        case 4:
-            h ^= (u64)(data2[3]) << 24;
-        case 3:
-            h ^= (u64)(data2[2]) << 16;
-        case 2:
-            h ^= (u64)(data2[1]) << 8;
-        case 1:
-            h ^= (u64)(data2[0]);
-            h *= m;
+    case 7:
+        h ^= (u64)(data2[6]) << 48;
+    case 6:
+        h ^= (u64)(data2[5]) << 40;
+    case 5:
+        h ^= (u64)(data2[4]) << 32;
+    case 4:
+        h ^= (u64)(data2[3]) << 24;
+    case 3:
+        h ^= (u64)(data2[2]) << 16;
+    case 2:
+        h ^= (u64)(data2[1]) << 8;
+    case 1:
+        h ^= (u64)(data2[0]);
+        h *= m;
     };
 
     h ^= h >> r;

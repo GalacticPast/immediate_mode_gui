@@ -1,17 +1,13 @@
 BasedOnStyle: Microsoft
-IndentCaseLabels: true 
-
 AlignConsecutiveAssignments:
   Enabled: true
   AcrossEmptyLines: false 
   AcrossComments: true
   AlignCompound: true
   AlignFunctionPointers: true
-
 AlignConsecutiveDeclarations:
   Enabled: true
   AlignCompound: true
-
 BraceWrapping:
   AfterCaseLabel: false
   AfterClass: true
@@ -31,3 +27,10 @@ BraceWrapping:
   SplitEmptyFunction: true
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
+
+  # 0 disables the column limit entirely.
+ColumnLimit: 0
+
+BinPackParameters: true 
+BinPackArguments: true
+AlignAfterOpenBracket: Align
