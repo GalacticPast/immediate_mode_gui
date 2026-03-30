@@ -204,25 +204,22 @@ db_array(ui_elem) ui_get_render_commands()
 }
 
 // private implementation
-void __append_dummy_layout_elem()
+// change it so that it calls the ui_create_box
+void __append_dummy_layout_elem(ui_axis_type axis_type)
 {
     // row dummy elem
-    ui_elem  dummy_elem       = {};
-    ui_elem *parent           = db_array_get_index_ptr(state->elements, db_stack_peek(state->curr_parent));
-    u64      dummy_elem_index = db_array_get_count(state->elements);
-    dummy_elem.index          = dummy_elem_index;
-    dummy_elem.parent_index   = parent->index;
+    ui_elem  dummy_elem = {};
+    ui_elem *parent     = db_array_get_index_ptr(state->elements, db_stack_peek(state->curr_parent));
+
+    u64 dummy_elem_index    = db_array_get_count(state->elements);
+    dummy_elem.axis_type    = axis_type;
+    dummy_elem.index        = dummy_elem_index;
+    dummy_elem.parent_index = parent->index;
 
     if (parent->first_child_index == 0) // if we havent updated the parent's child index yet
     {
         state->elements[parent->index].first_child_index =
             dummy_elem.index; // this is the first children for the parent
-
-        if (parent->position.x != 0 || parent->position.y != 0) // if the parent has a default pos
-        {
-            dummy_elem.position.x = parent->position.x + 10;
-            dummy_elem.position.y = parent->position.y + 10;
-        }
     }
     dummy_elem.type = TYPE_LAYOUT_NODE;
 
@@ -266,7 +263,7 @@ void __append_dummy_layout_elem()
 
 b8 __ui_row_begin(void)
 {
-    __append_dummy_layout_elem();
+    __append_dummy_layout_elem(TYPE_AXIS_ROW);
     db_stack_push(state->curr_axis, TYPE_AXIS_ROW);
     return true; // macro hack
 }
@@ -280,7 +277,7 @@ b8 __ui_row_end(void)
 
 b8 __ui_column_begin(void)
 {
-    __append_dummy_layout_elem();
+    __append_dummy_layout_elem(TYPE_AXIS_COLUMN);
     db_stack_push(state->curr_axis, TYPE_AXIS_COLUMN);
     return true; // macro hack
 }
@@ -309,7 +306,8 @@ vector3d __ui_calculate_position(s32 index)
     vector3d cursor = {parent->position.x + padding_x, parent->position.y + padding_y, 0};
     ui_elem *node   = first_child;
 
-    for (; node->next_sibling_index != 0; node = db_array_get_index_ptr(state->elements, node->next_sibling_index))
+    for (; node->type != TYPE_WINDOW && node->index != 0;
+         node = db_array_get_index_ptr(state->elements, node->next_sibling_index))
     {
         node->position = cursor;
         if (parent->axis_type == TYPE_AXIS_ROW)
@@ -328,6 +326,9 @@ vector3d __ui_calculate_position(s32 index)
 void __ui_calculate_element_sizes()
 {
     // well what if the pane was part of a window and then the user dragged it and then it became a window?
+    static s32 padding_x = 5;
+    static s32 padding_y = 5;
+
     u64       length     = db_array_get_count(state->elements);
     rectangle dimensions = {};
 
@@ -346,13 +347,13 @@ void __ui_calculate_element_sizes()
         {
             if (elem->axis == TYPE_AXIS_ROW)
             {
-                parent->dimensions.width  += elem->dimensions.width;
-                parent->dimensions.height  = max(elem->dimensions.height, parent->dimensions.height);
+                parent->dimensions.width  += elem->dimensions.width + padding_x;
+                parent->dimensions.height  = max(elem->dimensions.height + padding_y, parent->dimensions.height);
             }
             else
             {
-                parent->dimensions.width   = max(elem->dimensions.width, parent->dimensions.width);
-                parent->dimensions.height += elem->dimensions.height;
+                parent->dimensions.width   = max(elem->dimensions.width + padding_x, parent->dimensions.width);
+                parent->dimensions.height += elem->dimensions.height + padding_y;
             }
         }
     }
