@@ -7,8 +7,12 @@
 #include <string.h>
 #include <unistd.h>
 
-#ifdef __win32__
+#if  defined(__win32_)  || defined(__WIN32)
 #define DB_PLATFORM_WINDOWS
+#define NOGDI 
+#define NOUSER
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>      
 #elif __linux__
 #define DB_PLATFORM_LINUX
 #include <sanitizer/asan_interface.h>
@@ -80,7 +84,7 @@ typedef s8 b8;
 #define s32_min -2147483648
 #define s32_max 2147483647
 // hmmmm we need a floating point max too ?
-#define max(n, m) (s64) n >= (s64)m ? (s64)n : (s64)m
+#define db_max(n, m) (s64) n >= (s64)m ? (s64)n : (s64)m
 
 #define KB(n) ((s32)n * 1024)
 #define MB(n) ((s32)n * 1024 * 1024)
@@ -651,8 +655,8 @@ void *__db_reserve_virtual_memory(size_t reserve_memory_size)
     ASSERT(ptr != MAP_FAILED);
 
     return ptr;
-#elif DB_PLATFORM_WINDOWS
-
+#elif defined(DB_PLATFORM_WINDOWS)
+      ptr = VirtualAlloc(0, reserve_memory_size, MEM_RESERVE, PAGE_READWRITE); 
 #endif
     ASSERT(ptr != NULL);
     return (void *)ptr;
@@ -660,9 +664,10 @@ void *__db_reserve_virtual_memory(size_t reserve_memory_size)
 
 db_return_code __db_commit_virtual_memory(void *memory, s32 page_offset, s32 num_pages)
 {
-#if defined(DB_PLATFORM_LINUX) || defined(DB_PLATFORM_MACOS)
     uintptr_t next_page_base_ptr = (uintptr_t)memory + (page_offset * DB_PAGE_SIZE);
     s64       new_allocated_size = num_pages * DB_PAGE_SIZE;
+
+#if defined(DB_PLATFORM_LINUX) || defined(DB_PLATFORM_MACOS)
     s32       ret_code           = mprotect((void *)next_page_base_ptr, new_allocated_size, PROT_READ | PROT_WRITE);
     if (ret_code == -1)
     {
@@ -675,11 +680,17 @@ db_return_code __db_commit_virtual_memory(void *memory, s32 page_offset, s32 num
     asan_poison_memory_region((void *)next_page_base_ptr, new_allocated_size);
 
     return DB_SUCCESS;
-#elif DB_PLATFORM_WINDOWS
+#elif defined(DB_PLATFORM_WINDOWS)
+      b8 result = (VirtualAlloc((void *)next_page_base_ptr, new_allocated_size, MEM_COMMIT, PAGE_READWRITE) != NULL); 
 
+      if(result == false)
+      {
+          printf("cannot commit: %d pages, arleady commited %d pages. increase the reserved virtual alloc size.\n",
+                  num_pages, page_offset);
+          ASSERT(result);
+      }
+      return DB_SUCCESS;
 #endif
-    ASSERT(false);
-    return DB_ERROR;
 }
 // i dont think i will decomit individual pages, for example for an dynamic array i am pretty sure i will not decommit
 // the last page or last 2 pages and so on. so decommit the whole allocated memory size of it.
@@ -692,7 +703,9 @@ db_return_code __db_decommit_virtual_memory(void *memory, size_t size)
     s32 ret_code = mprotect(memory, size, PROT_NONE);
     ASSERT(ret_code != -1);
     return DB_SUCCESS;
-#elif DB_PLATFORM_WINDOWS
+#elif defined(DB_PLATFORM_WINDOWS)
+    // size not needed for windows
+    VirtualFree(memory, 0, MEM_DECOMMIT);
 #endif
     return DB_ERROR;
 }
@@ -703,7 +716,9 @@ db_return_code __db_release_virtual_memory(void *memory, size_t size)
     s32 ret_code = munmap(memory, size);
     ASSERT(ret_code != -1);
     return DB_SUCCESS;
-#elif DB_PLATFORM_WINDOWS
+#elif defined(DB_PLATFORM_WINDOWS)
+    VirtualFree(memory, 0, MEM_RELEASE);
+    return DB_SUCCESS;
 #endif
 }
 
