@@ -86,41 +86,46 @@ u64 ui_create_box(const char         *label,
 
     if (type & TYPE_LAYOUT_NODE)
     {
-        // this is a terrible hack
-        // what we are doing is talking advantage of the db_stack implementation
-        // when we pop from the stack it doesnt zero the recent bucket, it just
-        // decrements the array count by 1. So wehen we push another elem it will
-        // ovveride that bucket. so before we ovveride we access that bucket and get
-        // the most recent popped element. example:  ui tree is like this
-        //
-        /*             window               curr_parent stack
-                       /    \                    row_0
-                   row_0                         window
-         *
-         *
-         * lets say we exit the scope of row_0 it will pop the row_o elem from the
-         curr_parent stack
-
-                     curr_parent stack
-                                     -> we popped it but the data is still there
-                          window
-         *  now we want to push row_1 which is the next row for our window
-         * now row_1 needs to know what's its previous sibling is.
-         * now before we push it to the stack we get the popped elem's shadow data
-           and we know whats the row_1's previous sibling.
-        */
-        s64 count    = db_stack_get_count(state->curr_parent);
-        prev_sibling = &state->elements[state->curr_parent[count]];
-
-        if (prev_sibling->parent_index)
+        // if the layout node has the same parent as its prev siblings then just do the normal logic
+        // if not
+        if (prev_sibling->parent_index != box.parent_index)
         {
-            ASSERT_WITH_MSG((prev_sibling->parent_index == box.parent_index),
-                            "Well I was not clever as I was thinking I was :)");
+            // this is a terrible hack
+            // what we are doing is talking advantage of the db_stack implementation
+            // when we pop from the stack it doesnt zero the recent bucket, it just
+            // decrements the array count by 1. So wehen we push another elem it will
+            // ovveride that bucket. so before we ovveride we access that bucket and get
+            // the most recent popped element. example:  ui tree is like this
+            //
+            /*             window               curr_parent stack
+                           /    \                    row_0
+                           row_0                         window
+             *
+             *
+             * lets say we exit the scope of row_0 it will pop the row_o elem from the
+             curr_parent stack
+
+             curr_parent stack
+             -> we popped it but the data is still there
+             window
+             *  now we want to push row_1 which is the next row for our window
+             * now row_1 needs to know what's its previous sibling is.
+             * now before we push it to the stack we get the popped elem's shadow data
+             and we know whats the row_1's previous sibling.
+             */
+            s64 count    = db_stack_get_count(state->curr_parent);
+            prev_sibling = &state->elements[state->curr_parent[count]];
+
+            if (prev_sibling->parent_index)
+            {
+                ASSERT_WITH_MSG((prev_sibling->parent_index == box.parent_index),
+                                "Well I was not clever as I was thinking I was :)");
+            }
         }
     }
 
     //
-
+    // IGNORE THE FOLLOWING COMMENT: ITS ALREADY FIXED // JUST PUTTINIG IT HERE FOR THE FUTURE
     // if the prev_sibling is the parent then this means this is the first child
     // of the parent and vice versa shit this doenst take into account if the
     // user puts a row or column layout in the middle like for example ui_row()

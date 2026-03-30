@@ -35,12 +35,18 @@ int main()
                 ui_button("Button1");
                 ui_button("Button2");
                 ui_button("Button3");
+                ui_column()
+                {
+                    ui_button("Button8");
+                    ui_button("Button11");
+                    ui_button("Button9");
+                }
             }
             ui_row()
             {
-                ui_button("Button1");
-                ui_button("Button2");
-                ui_button("Button3");
+                ui_button("Button4");
+                ui_button("Button6");
+                ui_button("Button5");
             }
         }
 
