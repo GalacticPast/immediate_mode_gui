@@ -4,6 +4,15 @@ static ui_state *state;
 
 void     __ui_calculate_element_sizes();
 vector3d __ui_calculate_position(s32 index);
+b8       __ui_check_mouse_hover(vector3d position, rectangle dimensions);
+
+db_return_code ui_update_mouse(vector2d mouse_pos, ui_mouse_button_state mouse_button_state)
+{
+    state->mouse_btn_state = mouse_button_state;
+    state->mouse_pos       = mouse_pos;
+
+    return DB_SUCCESS;
+}
 
 b8 array_elem_compare(ui_elem *find, ui_elem *with)
 {
@@ -146,11 +155,24 @@ ui_elem *ui_create_box(const char         *label,
         box.prev_sibling_index           = prev_sibling->index;
     }
 
+    // check if its hot or not
+    b8 is_hot    = false;
+    b8 is_active = false;
+    if (prev)
+    {
+        is_hot    = __ui_check_mouse_hover(prev->position, prev->dimensions);
+        is_active = is_hot && (state->mouse_btn_state & TYPE_MOUSE_RIGHT_BUTTON_RELEASED);
+    }
+
+    box.is_hot    = is_hot;
+    box.is_active = is_active;
+
     // do this at the last. Dummy
     if (type & TYPE_WINDOW || type & TYPE_LAYOUT_NODE)
     {
         db_stack_push(state->curr_parent, box.index);
     }
+
     db_array_append(state->elements, box);
     return db_array_get_last_ptr(state->elements);
 }
@@ -217,11 +239,11 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
                                   size_type,
                                   action_type,
                                   TYPE_AXIS_NONE,
-                                  TYPE_AXIS_COLUMN,
+                                  TYPE_AXIS_ROW,
                                   position,
                                   dimensions);
 
-    elem->background_color = (color){255, 0, 0, 255};
+    elem->background_color = (color){105, 80, 76, 255};
     elem->text_color       = (color){255, 255, 255, 255};
     return true;
 }
@@ -243,10 +265,17 @@ b8 ui_button(const char *label)
                                   (vector2d){0},
                                   (rectangle){0});
 
-    elem->background_color = (color){0, 255, 0, 255};
-    elem->text_color       = (color){255, 255, 255, 255};
+    if (elem->is_hot)
+    {
+        elem->background_color = (color){255, 0, 0, 255}; // turn pure red
+    }
+    else
+    {
+        elem->background_color = (color){90, 128, 133, 255};
+    }
+    elem->text_color = (color){255, 255, 255, 255};
 
-    return true;
+    return elem->is_active;
 }
 
 // private implementation
@@ -258,7 +287,7 @@ b8 __ui_row_begin(void)
                   TYPE_BASED_ON_CHILD,
                   TYPE_ACTION_NONE,
                   TYPE_AXIS_BASED_ON_PARENT,
-                  TYPE_AXIS_ROW,
+                  TYPE_AXIS_COLUMN,
                   (vector2d){0}, (rectangle){0});
 
     db_stack_push(state->curr_axis, TYPE_AXIS_ROW);
@@ -279,7 +308,7 @@ b8 __ui_column_begin(void)
                   TYPE_BASED_ON_CHILD,
                   TYPE_ACTION_NONE,
                   TYPE_AXIS_BASED_ON_PARENT,
-                  TYPE_AXIS_COLUMN,
+                  TYPE_AXIS_ROW,
                   (vector2d){0},
                   (rectangle){0});
 
@@ -321,12 +350,12 @@ vector3d __ui_calculate_position(s32 index)
     for (; node->index != 0;
          node = db_array_get_index_ptr(state->elements, node->next_sibling_index))
     {
-        if (node->axis_type & TYPE_AXIS_ROW)
+        if (node->axis_type & TYPE_AXIS_COLUMN)
         {
             node->position  = cursor;
             cursor.x       += node->dimensions.width + padding_x;
         }
-        else if (node->axis_type & TYPE_AXIS_COLUMN)
+        else if (node->axis_type & TYPE_AXIS_ROW)
         {
             node->position  = cursor;
             cursor.y       += node->dimensions.height + padding_y;
@@ -389,7 +418,7 @@ void __ui_calculate_element_sizes()
                      *  wait I think it's the opposite????
                     */
                 }
-                if (elem->axis_type & TYPE_AXIS_ROW)
+                if (elem->axis_type & TYPE_AXIS_COLUMN)
                 {
                     parent->dimensions.width  += elem->dimensions.width + padding_x;
                     parent->dimensions.height  = db_max(elem->dimensions.height + 2 * padding_y, parent->dimensions.height);
@@ -402,6 +431,20 @@ void __ui_calculate_element_sizes()
             }
         }
     }
+}
+
+b8 __ui_check_mouse_hover(vector3d elem_position, rectangle elem_dimensions)
+{
+    vector2d *mouse_pos = &state->mouse_pos;
+
+    if ((elem_position.y < mouse_pos->y) && (mouse_pos->y < elem_position.y + elem_dimensions.height))
+    {
+        if ((elem_position.x < mouse_pos->x) && (mouse_pos->x < elem_position.x + elem_dimensions.width))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 // this is also the last call for the ui sys in the frame

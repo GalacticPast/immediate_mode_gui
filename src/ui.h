@@ -61,19 +61,21 @@ typedef enum
 
 typedef enum
 {
-    TYPE_RIGHT_BUTTON_PRESSED  = bit0,
-    TYPE_LEFT_BUTTON_PRESSED   = bit1,
-    TYPE_RIGHT_BUTTON_RELEASED = bit2,
-    TYPE_LEFT_BUTTON_RELEASED  = bit3,
-} ui_mouse_state;
-
-typedef enum
-{
     TYPE_AXIS_NONE            = bit0,
     TYPE_AXIS_COLUMN          = bit1,
     TYPE_AXIS_ROW             = bit2,
     TYPE_AXIS_BASED_ON_PARENT = bit3,
 } ui_axis_type;
+
+// ui actions states
+typedef enum
+{
+    TYPE_MOUSE_NONE                  = bit0,
+    TYPE_MOUSE_RIGHT_BUTTON_PRESSED  = bit1, // hmmm
+    TYPE_MOUSE_LEFT_BUTTON_PRESSED   = bit2,
+    TYPE_MOUSE_RIGHT_BUTTON_RELEASED = bit3,
+    TYPE_MOUSE_LEFT_BUTTON_RELEASED  = bit4,
+} ui_mouse_button_state;
 
 typedef struct
 {
@@ -112,13 +114,19 @@ typedef struct
     color background_color;
     color text_color;
 
+    // persistent state
+    b8 is_hot;
+    b8 is_active;
+
     // text label
     db_string label;
 } ui_elem;
 
 typedef struct
 {
-    vector2d mouse_pos;
+    ui_mouse_button_state mouse_btn_state;
+    vector2d              mouse_pos;
+
     db_arena arena; // this is just used once actually ?
                     //  we call this and ask for mem only when we do ui_init
 
@@ -133,7 +141,8 @@ typedef struct
 } ui_state;
 
 db_return_code ui_init(rectangle (*measure_text_width)(const char *text, u32 font_size));
-db_return_code ui_update_mouse(vector2d mouse_pos, s32 mouse_button_state);
+db_return_code ui_update_mouse(vector2d mouse_pos, ui_mouse_button_state mouse_button_state);
+
 // this should be called in the end. Because this will reset the ui.
 db_array(ui_elem) ui_get_render_commands();
 

@@ -20,26 +20,52 @@ int main()
     SetTargetFPS(60); // Set target FPS (maximum)
 
     ui_init(&ui_measure_text);
-
+    Vector2               mouse_pos   = {};
+    ui_mouse_button_state mouse_state = 0;
     // test
     while (!WindowShouldClose())
     {
+        mouse_pos = GetMousePosition();
         BeginDrawing();
+        mouse_state = 0;
+
+        if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+        {
+            mouse_state |= TYPE_MOUSE_LEFT_BUTTON_PRESSED;
+        }
+        else if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+        {
+            mouse_state |= TYPE_MOUSE_LEFT_BUTTON_RELEASED;
+        }
+
+        if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT))
+        {
+            mouse_state |= TYPE_MOUSE_RIGHT_BUTTON_PRESSED;
+        }
+        else if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
+        {
+            mouse_state |= TYPE_MOUSE_RIGHT_BUTTON_RELEASED;
+        }
 
         ClearBackground(BLACK);
+
+        ui_update_mouse((vector2d){mouse_pos.x, mouse_pos.y}, mouse_state);
 
         ui_window_ext("Hello world", .position = {100, 100})
         {
             ui_row()
             {
-                ui_button("Button1");
+                if (ui_button("Button1"))
+                {
+                    printf("Yess\n");
+                }
                 ui_button("Button2");
             }
             ui_row()
             {
                 ui_button("Button4");
-                ui_button("Button6");
                 ui_button("Button5");
+                ui_button("Button6");
             }
         }
 
@@ -47,7 +73,9 @@ int main()
 
         for (s32 i = 0; i < db_array_get_count(elems); i++)
         {
-#if 1
+            Color background_color = *(struct Color *)((void *)&elems[i].background_color);
+            Color text_color       = *(struct Color *)((void *)&elems[i].text_color);
+
             switch (elems[i].type)
             {
             case TYPE_NONE:
@@ -59,19 +87,21 @@ int main()
             case TYPE_TEXT_FIELD:
             case TYPE_SCROLL_BAR:
             case TYPE_LAYOUT_NODE: {
+#if 0
+
+                DrawRectangleLines(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
+                                   elems[i].dimensions.height, background_color);
+#else
                 DrawRectangle(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
-                              elems[i].dimensions.height, (Color){elems[i].background_color.r, elems[i].background_color.g, elems[i].background_color.b, elems[i].background_color.a});
+                              elems[i].dimensions.height, background_color);
+#endif
             }
             break;
             case TYPE_TEXT: {
-                DrawText(elems[i].label, elems[i].position.x, elems[i].position.y, 12, (Color){elems[i].text_color.r, elems[i].text_color.g, elems[i].text_color.b, elems[i].text_color.a});
+                DrawText(elems[i].label, elems[i].position.x, elems[i].position.y, 12, text_color);
             }
             break;
             }
-#else
-            DrawRectangle(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
-                          elems[i].dimensions.height, WHITE);
-#endif
         }
 
         EndDrawing();
