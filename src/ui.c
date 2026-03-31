@@ -12,14 +12,14 @@ b8 array_elem_compare(ui_elem *find, ui_elem *with)
     return find->id == with->id;
 }
 
-u64 ui_create_box(const char         *label,
-                  ui_elem_type        type,
-                  ui_elem_size_type   size_type,
-                  ui_elem_action_type action_type,
-                  ui_axis_type        axis_type,
-                  ui_axis_type        axis_child_type,
-                  vector2d            position,
-                  rectangle           dimensions)
+ui_elem *ui_create_box(const char         *label,
+                       ui_elem_type        type,
+                       ui_elem_size_type   size_type,
+                       ui_elem_action_type action_type,
+                       ui_axis_type        axis_type,
+                       ui_axis_type        axis_child_type,
+                       vector2d            position,
+                       rectangle           dimensions)
 {
     ui_elem box     = {};
     // see if there is a parent for this
@@ -99,7 +99,7 @@ u64 ui_create_box(const char         *label,
             //
             /*             window               curr_parent stack
                            /    \                    row_0
-                           row_0                         window
+                           row_0                     window
              *
              *
              * lets say we exit the scope of row_0 it will pop the row_o elem from the
@@ -152,7 +152,7 @@ u64 ui_create_box(const char         *label,
         db_stack_push(state->curr_parent, box.index);
     }
     db_array_append(state->elements, box);
-    return box.id;
+    return db_array_get_last_ptr(state->elements);
 }
 
 db_return_code ui_init(rectangle (*measure_text_width)(const char *text, u32 font_size))
@@ -212,15 +212,17 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
         }
     }
 
-    u64 id = ui_create_box(title,
-                           TYPE_WINDOW,
-                           size_type,
-                           action_type,
-                           TYPE_AXIS_NONE,
-                           TYPE_AXIS_COLUMN,
-                           position,
-                           dimensions);
+    ui_elem *elem = ui_create_box(title,
+                                  TYPE_WINDOW,
+                                  size_type,
+                                  action_type,
+                                  TYPE_AXIS_NONE,
+                                  TYPE_AXIS_COLUMN,
+                                  position,
+                                  dimensions);
 
+    elem->background_color = (color){255, 0, 0, 255};
+    elem->text_color       = (color){255, 255, 255, 255};
     return true;
 }
 
@@ -232,44 +234,19 @@ b8 __ui_window_end(void)
 
 b8 ui_button(const char *label)
 {
-    u64 id = ui_create_box(label,
-                           TYPE_BUTTON,
-                           TYPE_BASED_ON_TEXT_SIZE,
-                           TYPE_ACTION_PRESSABLE,
-                           TYPE_AXIS_BASED_ON_PARENT,
-                           TYPE_AXIS_NONE,
-                           (vector2d){0},
-                           (rectangle){0});
+    ui_elem *elem = ui_create_box(label,
+                                  TYPE_BUTTON,
+                                  TYPE_BASED_ON_TEXT_SIZE,
+                                  TYPE_ACTION_PRESSABLE,
+                                  TYPE_AXIS_BASED_ON_PARENT,
+                                  TYPE_AXIS_NONE,
+                                  (vector2d){0},
+                                  (rectangle){0});
+
+    elem->background_color = (color){0, 255, 0, 255};
+    elem->text_color       = (color){255, 255, 255, 255};
 
     return true;
-}
-
-// this is also the last call for the ui sys in the frame
-db_array(ui_elem) ui_get_render_commands()
-{
-
-    __ui_calculate_element_sizes(); // calculate the sizes
-
-    // calculate relative positions
-    ui_elem *elem = NULL;
-    s32      i    = 0;
-    db_array_for_each_ptr(state->elements, i, elem)
-    {
-        if (elem->type & TYPE_WINDOW)
-        {
-            __ui_calculate_position(i);
-        }
-    }
-
-    state->mouse_pos = (vector2d){0, 0};
-    db_stack_clear(state->curr_parent);
-    // this will also clear the prev_elem_state
-    db_array_copy(state->prev_elem_state, state->elements);
-    db_array_clear(state->elements);
-
-    db_array_append(state->elements, (ui_elem){0});
-
-    return state->prev_elem_state;
 }
 
 // private implementation
@@ -355,10 +332,7 @@ vector3d __ui_calculate_position(s32 index)
             cursor.y       += node->dimensions.height + padding_y;
         }
 
-        if (node->child_count) // if the curr node has children then recurse to find its position
-        {
-            __ui_calculate_position(node->first_child_index);
-        }
+        __ui_calculate_position(node->first_child_index);
     }
     return cursor;
 }
@@ -428,4 +402,47 @@ void __ui_calculate_element_sizes()
             }
         }
     }
+}
+
+// this is also the last call for the ui sys in the frame
+db_array(ui_elem) ui_get_render_commands()
+{
+
+    __ui_calculate_element_sizes(); // calculate the sizes
+
+    // calculate relative positions
+    ui_elem *elem = NULL;
+    s32      i    = 0;
+    db_array_for_each_ptr(state->elements, i, elem)
+    {
+        if (elem->type & TYPE_WINDOW)
+        {
+            __ui_calculate_position(i);
+        }
+    }
+
+    state->mouse_pos = (vector2d){0, 0};
+    db_stack_clear(state->curr_parent);
+    // this will also clear the prev_elem_state
+    elem = NULL;
+    i    = 0;
+    db_array_for_each_ptr(state->elements, i, elem)
+    {
+        db_array_append(state->prev_elem_state, *elem);
+        if (!(elem->type & TYPE_LAYOUT_NODE)) // because every other elem will have a text that we need to render
+        {
+            ui_elem text    = {};
+            text.label      = elem->label; // just copy the parent pointer
+            text.position   = (vector3d){elem->position.x + 3, elem->position.y + 3, elem->position.z};
+            text.type       = TYPE_TEXT;
+            text.text_color = elem->text_color;
+            db_array_append(state->prev_elem_state, text);
+        }
+    }
+
+    db_array_clear(state->elements);
+
+    db_array_append(state->elements, (ui_elem){0});
+
+    return state->prev_elem_state;
 }

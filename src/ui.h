@@ -16,6 +16,14 @@ typedef struct
 
 typedef struct
 {
+    u8 r; // Color red value
+    u8 g; // Color green value
+    u8 b; // Color blue value
+    u8 a; // Color alpha value
+} color;
+
+typedef struct
+{
     f32 width;
     f32 height;
 } rectangle;
@@ -31,6 +39,7 @@ typedef enum
     TYPE_TEXT_FIELD    = bit6,
     TYPE_SCROLL_BAR    = bit7,
     TYPE_LAYOUT_NODE   = bit8,
+    TYPE_TEXT          = bit9,
 } ui_elem_type;
 
 typedef enum
@@ -96,9 +105,12 @@ typedef struct
                                          // this will affect how it will be laid out in the final.
                                          //
 
-    // position stuff
     vector3d  position; // absolute position. the z val used for windows/panels sorting.
     rectangle dimensions;
+
+    // element makeup 💅
+    color background_color;
+    color text_color;
 
     // text label
     db_string label;

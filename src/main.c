@@ -48,9 +48,26 @@ int main()
         for (s32 i = 0; i < db_array_get_count(elems); i++)
         {
 #if 1
-            // ui_elem *elem = &elems[i];
-            DrawRectangleLines(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
-                               elems[i].dimensions.height, WHITE);
+            switch (elems[i].type)
+            {
+            case TYPE_NONE:
+            case TYPE_WINDOW:
+            case TYPE_BUTTON:
+            case TYPE_RADIO_BUTTONS:
+            case TYPE_CHECKBOXES:
+            case TYPE_SLIDER:
+            case TYPE_TEXT_FIELD:
+            case TYPE_SCROLL_BAR:
+            case TYPE_LAYOUT_NODE: {
+                DrawRectangle(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
+                              elems[i].dimensions.height, (Color){elems[i].background_color.r, elems[i].background_color.g, elems[i].background_color.b, elems[i].background_color.a});
+            }
+            break;
+            case TYPE_TEXT: {
+                DrawText(elems[i].label, elems[i].position.x, elems[i].position.y, 12, (Color){elems[i].text_color.r, elems[i].text_color.g, elems[i].text_color.b, elems[i].text_color.a});
+            }
+            break;
+            }
 #else
             DrawRectangle(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
                           elems[i].dimensions.height, WHITE);
