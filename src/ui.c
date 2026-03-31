@@ -138,9 +138,9 @@ u64 ui_create_box(const char         *label,
     //      ...          -> the n+1 node's prev sibling should be button_n but I
     //      think we dont do that }           / button_n+1; ---
     // }
-    // INFO:  wait why should the n+1 node be the button, it can be the dummy ui
-    // row/column node
-    if (prev_sibling->parent_index == box.parent_index && prev_sibling->index != box.parent_index)
+    // INFO:  wait why should the n+1 node be the button, it can be the ui row/column node
+
+    if (prev_sibling->parent_index == box.parent_index)
     {
         prev_sibling->next_sibling_index = box.index;
         box.prev_sibling_index           = prev_sibling->index;
@@ -394,7 +394,8 @@ void __ui_calculate_element_sizes()
             {
                 if (parent->first_child_index == elem->index)
                 {
-                    parent->dimensions.width += padding_x; // kind of a hack, terrible for performance :)
+                    parent->dimensions.width  += padding_x; // kind of a hack, terrible for performance :)
+                    parent->dimensions.height += padding_y; // kind of a hack, terrible for performance :)
                     // im doing this because we are not talking into account of the first initial padding
                     // for example
                     /*
