@@ -69,6 +69,12 @@ ui_elem *ui_create_box(const char         *label,
     box.axis_child_type = axis_child_type;
     box.child_count     = 0;
 
+    if (!(type & TYPE_LAYOUT_NODE))
+    {
+        box.text_color       = (color){255, 255, 255, 255};
+        box.background_color = (color){90, 128, 133, 255};
+    }
+
     if (parent != NULL)
     {
         box.parent_index = parent->index;
@@ -166,6 +172,11 @@ ui_elem *ui_create_box(const char         *label,
     {
         is_hot    = __ui_check_mouse_hover(prev->position, prev->dimensions);
         is_active = is_hot && (state->mouse_btn_state & TYPE_MOUSE_LEFT_BUTTON_RELEASED);
+
+        if (is_hot & !(type & TYPE_LAYOUT_NODE))
+        {
+            box.background_color = (color){188, 188, 188, 255};
+        }
     }
 
     box.is_hot    = is_hot;
@@ -269,29 +280,18 @@ b8 ui_button(const char *label)
                                   (vector2d){0},
                                   (rectangle){0});
 
-    if (elem->is_hot)
-    {
-        elem->background_color = (color){188, 188, 188, 255}; // turn pure red
-    }
-    else
-    {
-        elem->background_color = (color){90, 128, 133, 255};
-    }
-    elem->text_color = (color){255, 255, 255, 255};
-
     return elem->is_active;
 }
 b8 ui_label(const char *label)
 {
-    ui_elem *elem    = ui_create_box(label,
-                                     TYPE_TEXT,
-                                     TYPE_BASED_ON_TEXT_SIZE,
-                                     TYPE_ACTION_PRESSABLE,
-                                     TYPE_AXIS_BASED_ON_PARENT,
-                                     TYPE_AXIS_NONE,
-                                     (vector2d){0},
-                                     (rectangle){0});
-    elem->text_color = (color){255, 255, 255, 255};
+    ui_elem *elem = ui_create_box(label,
+                                  TYPE_TEXT,
+                                  TYPE_BASED_ON_TEXT_SIZE,
+                                  TYPE_ACTION_PRESSABLE,
+                                  TYPE_AXIS_BASED_ON_PARENT,
+                                  TYPE_AXIS_NONE,
+                                  (vector2d){0},
+                                  (rectangle){0});
     return false; // label cannot be active or hot
 }
 
@@ -316,16 +316,6 @@ void ui_checkbox(const char *label, b8 *boolean)
                                             TYPE_AXIS_NONE,
                                             (vector2d){0},
                                             (rectangle){0});
-
-    if (checkbox->is_hot)
-    {
-        checkbox->background_color = (color){188, 188, 188, 255};
-    }
-    else
-    {
-        checkbox->background_color = (color){90, 128, 133, 255};
-    }
-    checkbox_label->text_color = (color){255, 255, 255, 255};
 
     checkbox->checkbox_val = boolean;
 
@@ -558,7 +548,9 @@ db_array(ui_elem) ui_get_render_commands()
             }
         }
         db_array_append(state->prev_elem_state, *elem);
-        if (!(elem->type & TYPE_LAYOUT_NODE) && !(elem->type & TYPE_TEXT)) // because every other elem will have a text that we need to render
+
+        //  @refactor: this because every other elem will have a text that we need to render --> ?? with the helll
+        if (!(elem->type & TYPE_LAYOUT_NODE) && !(elem->type & TYPE_TEXT) && !(elem->type & TYPE_CHECKBOX))
         {
             ui_elem text    = {};
             text.label      = elem->label; // just copy the parent pointer

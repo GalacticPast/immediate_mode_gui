@@ -22,8 +22,8 @@ int main()
     ui_init(&ui_measure_text);
     Vector2               mouse_pos   = {};
     ui_mouse_button_state mouse_state = 0;
-    // test
-    b8 a                              = false;
+
+    b8 a = false;
 
     while (!WindowShouldClose())
     {
@@ -96,7 +96,7 @@ int main()
                 DrawRectangle(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
                               elems[i].dimensions.height, background_color);
                 b8 res = elems[i].type & TYPE_CHECKBOX;
-                if (res)
+                if (res) // @refactor: this is kinda shit
                 {
                     Vector2 common_point = *(Vector2 *)((void *)&elems[i].check_common_start);
                     Vector2 first_half   = *(Vector2 *)((void *)&elems[i].check_first_half_end);
