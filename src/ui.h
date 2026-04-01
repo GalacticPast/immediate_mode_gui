@@ -41,7 +41,6 @@ typedef enum
     TYPE_LAYOUT_NODE   = bit8,
     // i think we should seperate out the render commands from this
     TYPE_TEXT          = bit9,
-    TYPE_LINE          = bit10,
 } ui_elem_type;
 
 typedef enum
@@ -120,8 +119,11 @@ typedef struct
     b8 is_hot;
     b8 is_active;
 
-    // type specific data
-    b8 *checkbox_val;
+    // type specific data // lol
+    b8      *checkbox_val;
+    vector2d check_common_start;
+    vector2d check_first_half_end;
+    vector2d check_second_half_end;
 
     // text label
     db_string label;

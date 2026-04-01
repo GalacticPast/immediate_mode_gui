@@ -23,6 +23,8 @@ int main()
     Vector2               mouse_pos   = {};
     ui_mouse_button_state mouse_state = 0;
     // test
+    b8 a                              = false;
+
     while (!WindowShouldClose())
     {
         mouse_pos   = GetMousePosition();
@@ -57,11 +59,13 @@ int main()
             ui_row()
             {
                 ui_label("Press me: ");
-                ui_button("Press");
+                if (ui_button("Press"))
+                {
+                    printf("Hellooo you pressed me. \n");
+                }
             }
             ui_row()
             {
-                b8 a = false;
                 ui_checkbox("Checkbox", &a);
             }
         }
@@ -91,6 +95,15 @@ int main()
 #else
                 DrawRectangle(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
                               elems[i].dimensions.height, background_color);
+                b8 res = elems[i].type & TYPE_CHECKBOX;
+                if (res)
+                {
+                    Vector2 common_point = *(Vector2 *)((void *)&elems[i].check_common_start);
+                    Vector2 first_half   = *(Vector2 *)((void *)&elems[i].check_first_half_end);
+                    Vector2 second_half  = *(Vector2 *)((void *)&elems[i].check_second_half_end);
+                    DrawLineEx(common_point, first_half, 3, WHITE);
+                    DrawLineEx(common_point, second_half, 3, WHITE);
+                }
 #endif
             }
             break;
@@ -98,14 +111,9 @@ int main()
                 DrawText(elems[i].label, elems[i].position.x, elems[i].position.y, 12, text_color);
             }
             break;
-            case TYPE_LINE: {
-                DrawLine(elems[i].position.x, elems[i].position.y, 12, text_color);
             }
-            break;
-            }
-
-            EndDrawing();
         }
-        CloseWindow();
+        EndDrawing();
     }
+    CloseWindow();
 }

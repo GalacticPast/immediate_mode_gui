@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "math.h"
 
 static ui_state *state;
 
@@ -42,9 +43,13 @@ ui_elem *ui_create_box(const char         *label,
     // set some state for the box
 
     // this is kinda shit
-    box.label     = db_string_make(label);                                                          // shit
-    u64      id   = db_hash_string(box.label);                                                      // shit
-    ui_elem *prev = db_array_find(state->prev_elem_state, (ui_elem){.id = id}, array_elem_compare); // shit
+    box.label     = db_string_make(label);                                                                             // shit
+    u64 id        = db_murmur64A_seed(label, db_string_length(box.label), parent == NULL ? DB_HASH_SEED : parent->id); // shit
+    box.id        = id;
+    // this still deosnt take care of the fact if in the same layout row / column
+    // we have two different ui elems with the same label
+    // this will still generate the same id
+    ui_elem *prev = db_array_find(state->prev_elem_state, box, array_elem_compare); // shit
 
     if (prev)
     {
@@ -53,7 +58,6 @@ ui_elem *ui_create_box(const char         *label,
     }
 
     ASSERT(db_string_length(box.label) == (s64)strlen(label));
-    box.id              = db_hash_string(box.label);
     // it doesnt matter if the parent.id is 0 because 0 is the sentinel node
     box.type            = type;
     box.action_type     = action_type;
@@ -161,7 +165,7 @@ ui_elem *ui_create_box(const char         *label,
     if (prev && !(action_type & TYPE_ACTION_NONE))
     {
         is_hot    = __ui_check_mouse_hover(prev->position, prev->dimensions);
-        is_active = is_hot && (state->mouse_btn_state & TYPE_MOUSE_RIGHT_BUTTON_RELEASED);
+        is_active = is_hot && (state->mouse_btn_state & TYPE_MOUSE_LEFT_BUTTON_RELEASED);
     }
 
     box.is_hot    = is_hot;
@@ -295,7 +299,7 @@ void ui_checkbox(const char *label, b8 *boolean)
 {
     static rectangle min_checkbox_dimen = (rectangle){15, 15};
 
-    ui_elem *checkbox = ui_create_box("",
+    ui_elem *checkbox = ui_create_box("checkbox",
                                       TYPE_CHECKBOX,
                                       TYPE_SIZE_FIXED,
                                       TYPE_ACTION_PRESSABLE,
@@ -313,7 +317,14 @@ void ui_checkbox(const char *label, b8 *boolean)
                                             (vector2d){0},
                                             (rectangle){0});
 
-    checkbox->background_color = (color){0, 0, 132, 255};
+    if (checkbox->is_hot)
+    {
+        checkbox->background_color = (color){188, 188, 188, 255};
+    }
+    else
+    {
+        checkbox->background_color = (color){90, 128, 133, 255};
+    }
     checkbox_label->text_color = (color){255, 255, 255, 255};
 
     checkbox->checkbox_val = boolean;
@@ -509,6 +520,7 @@ db_array(ui_elem) ui_get_render_commands()
     }
 
     state->mouse_pos = (vector2d){0, 0};
+    db_array_clear(state->prev_elem_state);
     db_stack_clear(state->curr_parent);
     // this will also clear the prev_elem_state
     elem = NULL;
@@ -519,6 +531,32 @@ db_array(ui_elem) ui_get_render_commands()
         {
             elem->position = (vector3d){elem->position.x + 3, elem->position.y + 3, elem->position.z};
         }
+        if (elem->type & TYPE_CHECKBOX)
+        {
+            ASSERT(elem->checkbox_val != NULL);
+            if (*elem->checkbox_val)
+            {
+                f32 two_thirds_y = elem->position.y + (elem->dimensions.height * 0.666666);
+                f32 half_x       = elem->position.x + (elem->dimensions.width * 0.5);
+                f32 scale        = 6.5;
+
+                elem->check_common_start = (vector2d){half_x, two_thirds_y};
+
+                elem->check_second_half_end = (vector2d){1.35, -1.28};   // -------->   thanks  desmos
+                elem->check_first_half_end  = (vector2d){-1.023, -0.71}; // -- /
+
+                elem->check_first_half_end.x  *= scale;
+                elem->check_first_half_end.y  *= scale;
+                elem->check_second_half_end.x *= scale;
+                elem->check_second_half_end.y *= scale;
+
+                elem->check_first_half_end.x += half_x;
+                elem->check_first_half_end.y += two_thirds_y;
+
+                elem->check_second_half_end.x += half_x;
+                elem->check_second_half_end.y += two_thirds_y;
+            }
+        }
         db_array_append(state->prev_elem_state, *elem);
         if (!(elem->type & TYPE_LAYOUT_NODE) && !(elem->type & TYPE_TEXT)) // because every other elem will have a text that we need to render
         {
@@ -528,13 +566,6 @@ db_array(ui_elem) ui_get_render_commands()
             text.type       = TYPE_TEXT;
             text.text_color = elem->text_color;
             db_array_append(state->prev_elem_state, text);
-        }
-        if (elem->type & TYPE_CHECKBOX)
-        {
-            ASSERT(elem->checkbox_val != NULL);
-            if (*elem->checkbox_val) // finish this
-            {
-            }
         }
     }
 
