@@ -25,8 +25,7 @@ int main()
     // test
     while (!WindowShouldClose())
     {
-        mouse_pos = GetMousePosition();
-        BeginDrawing();
+        mouse_pos   = GetMousePosition();
         mouse_state = 0;
 
         if (IsMouseButtonDown(MOUSE_BUTTON_LEFT))
@@ -47,6 +46,8 @@ int main()
             mouse_state |= TYPE_MOUSE_RIGHT_BUTTON_RELEASED;
         }
 
+        BeginDrawing();
+
         ClearBackground(BLACK);
 
         ui_update_mouse((vector2d){mouse_pos.x, mouse_pos.y}, mouse_state);
@@ -55,17 +56,13 @@ int main()
         {
             ui_row()
             {
-                if (ui_button("Button1"))
-                {
-                    printf("Yess\n");
-                }
-                ui_button("Button2");
+                ui_label("Press me: ");
+                ui_button("Press");
             }
             ui_row()
             {
-                ui_button("Button4");
-                ui_button("Button5");
-                ui_button("Button6");
+                b8 a = false;
+                ui_checkbox("Checkbox", &a);
             }
         }
 
@@ -82,7 +79,7 @@ int main()
             case TYPE_WINDOW:
             case TYPE_BUTTON:
             case TYPE_RADIO_BUTTONS:
-            case TYPE_CHECKBOXES:
+            case TYPE_CHECKBOX:
             case TYPE_SLIDER:
             case TYPE_TEXT_FIELD:
             case TYPE_SCROLL_BAR:
@@ -101,10 +98,14 @@ int main()
                 DrawText(elems[i].label, elems[i].position.x, elems[i].position.y, 12, text_color);
             }
             break;
+            case TYPE_LINE: {
+                DrawLine(elems[i].position.x, elems[i].position.y, 12, text_color);
             }
-        }
+            break;
+            }
 
-        EndDrawing();
+            EndDrawing();
+        }
+        CloseWindow();
     }
-    CloseWindow();
 }

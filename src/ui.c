@@ -80,7 +80,7 @@ ui_elem *ui_create_box(const char         *label,
     }
 
     // calculate min size
-    if (!(type & TYPE_LAYOUT_NODE))
+    if (!(type & TYPE_LAYOUT_NODE) && !(type & TYPE_CHECKBOX))
     {
         rectangle *dimen = &box.dimensions;
         dimen->width     = state->measure_text_width(box.label, state->font_size).width;
@@ -158,7 +158,7 @@ ui_elem *ui_create_box(const char         *label,
     // check if its hot or not
     b8 is_hot    = false;
     b8 is_active = false;
-    if (prev)
+    if (prev && !(action_type & TYPE_ACTION_NONE))
     {
         is_hot    = __ui_check_mouse_hover(prev->position, prev->dimensions);
         is_active = is_hot && (state->mouse_btn_state & TYPE_MOUSE_RIGHT_BUTTON_RELEASED);
@@ -267,7 +267,7 @@ b8 ui_button(const char *label)
 
     if (elem->is_hot)
     {
-        elem->background_color = (color){255, 0, 0, 255}; // turn pure red
+        elem->background_color = (color){188, 188, 188, 255}; // turn pure red
     }
     else
     {
@@ -276,6 +276,52 @@ b8 ui_button(const char *label)
     elem->text_color = (color){255, 255, 255, 255};
 
     return elem->is_active;
+}
+b8 ui_label(const char *label)
+{
+    ui_elem *elem    = ui_create_box(label,
+                                     TYPE_TEXT,
+                                     TYPE_BASED_ON_TEXT_SIZE,
+                                     TYPE_ACTION_PRESSABLE,
+                                     TYPE_AXIS_BASED_ON_PARENT,
+                                     TYPE_AXIS_NONE,
+                                     (vector2d){0},
+                                     (rectangle){0});
+    elem->text_color = (color){255, 255, 255, 255};
+    return false; // label cannot be active or hot
+}
+
+void ui_checkbox(const char *label, b8 *boolean)
+{
+    static rectangle min_checkbox_dimen = (rectangle){15, 15};
+
+    ui_elem *checkbox = ui_create_box("",
+                                      TYPE_CHECKBOX,
+                                      TYPE_SIZE_FIXED,
+                                      TYPE_ACTION_PRESSABLE,
+                                      TYPE_AXIS_BASED_ON_PARENT,
+                                      TYPE_AXIS_NONE,
+                                      (vector2d){0},
+                                      min_checkbox_dimen);
+
+    ui_elem *checkbox_label = ui_create_box(label,
+                                            TYPE_TEXT,
+                                            TYPE_BASED_ON_TEXT_SIZE,
+                                            TYPE_ACTION_NONE,
+                                            TYPE_AXIS_BASED_ON_PARENT,
+                                            TYPE_AXIS_NONE,
+                                            (vector2d){0},
+                                            (rectangle){0});
+
+    checkbox->background_color = (color){0, 0, 132, 255};
+    checkbox_label->text_color = (color){255, 255, 255, 255};
+
+    checkbox->checkbox_val = boolean;
+
+    if (checkbox->is_active)
+    {
+        *boolean = !(*boolean);
+    }
 }
 
 // private implementation
@@ -437,14 +483,12 @@ b8 __ui_check_mouse_hover(vector3d elem_position, rectangle elem_dimensions)
 {
     vector2d *mouse_pos = &state->mouse_pos;
 
-    if ((elem_position.y < mouse_pos->y) && (mouse_pos->y < elem_position.y + elem_dimensions.height))
-    {
-        if ((elem_position.x < mouse_pos->x) && (mouse_pos->x < elem_position.x + elem_dimensions.width))
-        {
-            return true;
-        }
-    }
-    return false;
+    b8 res = ((elem_position.y < mouse_pos->y)
+              && (mouse_pos->y < elem_position.y + elem_dimensions.height)
+              && (elem_position.x < mouse_pos->x)
+              && (mouse_pos->x < elem_position.x + elem_dimensions.width));
+
+    return res;
 }
 
 // this is also the last call for the ui sys in the frame
@@ -471,8 +515,12 @@ db_array(ui_elem) ui_get_render_commands()
     i    = 0;
     db_array_for_each_ptr(state->elements, i, elem)
     {
+        if ((elem->type & TYPE_TEXT))
+        {
+            elem->position = (vector3d){elem->position.x + 3, elem->position.y + 3, elem->position.z};
+        }
         db_array_append(state->prev_elem_state, *elem);
-        if (!(elem->type & TYPE_LAYOUT_NODE)) // because every other elem will have a text that we need to render
+        if (!(elem->type & TYPE_LAYOUT_NODE) && !(elem->type & TYPE_TEXT)) // because every other elem will have a text that we need to render
         {
             ui_elem text    = {};
             text.label      = elem->label; // just copy the parent pointer
@@ -480,6 +528,13 @@ db_array(ui_elem) ui_get_render_commands()
             text.type       = TYPE_TEXT;
             text.text_color = elem->text_color;
             db_array_append(state->prev_elem_state, text);
+        }
+        if (elem->type & TYPE_CHECKBOX)
+        {
+            ASSERT(elem->checkbox_val != NULL);
+            if (*elem->checkbox_val) // finish this
+            {
+            }
         }
     }
 

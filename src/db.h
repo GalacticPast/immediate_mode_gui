@@ -954,15 +954,13 @@ db_return_code __db_array_init(void **array, size_t type_size)
 
     db_array_header *header = memory;
 
-    uintptr_t array_mem =
-        DB_ALIGN_TO_MULTIPLE((uintptr_t)memory + sizeof(db_array_header), DB_DEFAULT_MEMORY_ALIGNEMENT);
+    uintptr_t array_mem = DB_ALIGN_TO_MULTIPLE((uintptr_t)memory + sizeof(db_array_header), DB_DEFAULT_MEMORY_ALIGNEMENT);
 
     ASSERT((array_mem - sizeof(db_array_header)) == (uintptr_t)memory);
 
     *array = (void *)array_mem;
 
-    size_t array_size =
-        DB_ALIGN_TO_MULTIPLE(header_plus_array_size - sizeof(db_array_header), DB_DEFAULT_MEMORY_ALIGNEMENT);
+    size_t array_size = DB_ALIGN_TO_MULTIPLE(header_plus_array_size - sizeof(db_array_header), DB_DEFAULT_MEMORY_ALIGNEMENT);
 
     header->total_length = array_size / type_size;
     header->count        = 0;

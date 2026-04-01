@@ -28,6 +28,9 @@ BraceWrapping:
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
 
+BreakBeforeBinaryOperators: All
+AlignOperands: Align
+  
   # 0 disables the column limit entirely.
 ColumnLimit: 0
 
