@@ -24,7 +24,6 @@ int main()
     ui_mouse_button_state mouse_state = 0;
 
     b8 a = false;
-
     while (!WindowShouldClose())
     {
         mouse_pos   = GetMousePosition();
@@ -56,7 +55,7 @@ int main()
 
         ui_window_ext("Hello world", .position = {100, 100})
         {
-            ui_row()
+            ui_column()
             {
                 ui_label("Press me: ");
                 if (ui_button("Press"))
@@ -64,30 +63,30 @@ int main()
                     printf("Hellooo you pressed me. \n");
                 }
             }
-            ui_row()
-            {
-                ui_checkbox("Checkbox", &a);
-            }
+            ui_button("Hello ?");
+            ui_checkbox("Checkbox", &a);
+            static s32 choice = -1;
+            ui_radio_button("radio 0", &choice, 0);
+            ui_radio_button("radio 1", &choice, 1);
+            ui_radio_button("radio 2", &choice, 2);
         }
 
         db_array(ui_elem) elems = ui_get_render_commands();
 
         for (s32 i = 0; i < db_array_get_count(elems); i++)
         {
-            Color background_color = *(struct Color *)((void *)&elems[i].background_color);
-            Color text_color       = *(struct Color *)((void *)&elems[i].text_color);
-
+            Color   background_color = *(struct Color *)((void *)&elems[i].background_color);
+            Color   text_color       = *(struct Color *)((void *)&elems[i].text_color);
+            Vector2 position         = *(struct Vector2 *)((void *)&elems[i].position);
             switch (elems[i].type)
             {
             case TYPE_NONE:
             case TYPE_WINDOW:
             case TYPE_BUTTON:
-            case TYPE_RADIO_BUTTONS:
             case TYPE_CHECKBOX:
             case TYPE_SLIDER:
             case TYPE_TEXT_FIELD:
-            case TYPE_SCROLL_BAR:
-            case TYPE_LAYOUT_NODE: {
+            case TYPE_SCROLL_BAR: {
 #if 0
 
                 DrawRectangleLines(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
@@ -106,9 +105,21 @@ int main()
                 }
 #endif
             }
+            case TYPE_LAYOUT_NODE: {
+                DrawRectangleLines(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
+                                   elems[i].dimensions.height, WHITE);
+            }
             break;
+                break;
             case TYPE_TEXT: {
                 DrawText(elems[i].label, elems[i].position.x, elems[i].position.y, 12, text_color);
+            }
+            break;
+            case TYPE_RADIO_BUTTON: {
+                Vector2 center = *(Vector2 *)((void *)&elems[i].radio_button_center);
+                DrawCircleV(center, elems[i].dimensions.width / 2, background_color);
+                // DrawRectangle(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
+                //               elems[i].dimensions.height, background_color);
             }
             break;
             }

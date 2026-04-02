@@ -30,25 +30,25 @@ typedef struct
 
 typedef enum
 {
-    TYPE_NONE          = bit0,
-    TYPE_WINDOW        = bit1,
-    TYPE_BUTTON        = bit2,
-    TYPE_RADIO_BUTTONS = bit3,
-    TYPE_CHECKBOX      = bit4,
-    TYPE_SLIDER        = bit5,
-    TYPE_TEXT_FIELD    = bit6,
-    TYPE_SCROLL_BAR    = bit7,
-    TYPE_LAYOUT_NODE   = bit8,
+    TYPE_NONE         = bit0,
+    TYPE_WINDOW       = bit1,
+    TYPE_BUTTON       = bit2,
+    TYPE_RADIO_BUTTON = bit3,
+    TYPE_CHECKBOX     = bit4,
+    TYPE_SLIDER       = bit5,
+    TYPE_TEXT_FIELD   = bit6,
+    TYPE_SCROLL_BAR   = bit7,
+    TYPE_LAYOUT_NODE  = bit8,
     // i think we should seperate out the render commands from this
-    TYPE_TEXT          = bit9,
+    TYPE_TEXT         = bit9,
 } ui_elem_type;
 
 typedef enum
 {
-    TYPE_SIZE_NONE          = bit0,
-    TYPE_BASED_ON_CHILD     = bit1,
-    TYPE_SIZE_FIXED         = bit2,
-    TYPE_BASED_ON_TEXT_SIZE = bit3,
+    TYPE_SIZE_NONE           = bit0,
+    TYPE_SIZE_BASED_ON_CHILD = bit1,
+    TYPE_SIZE_FIXED          = bit2,
+    TYPE_SIZE_BASED_ON_TEXT  = bit3,
 } ui_elem_size_type;
 
 typedef enum
@@ -125,6 +125,10 @@ typedef struct
     vector2d check_first_half_end;
     vector2d check_second_half_end;
 
+    s32      radio_button_id;
+    s32     *choice;
+    vector2d radio_button_center;
+
     // text label
     db_string label;
 } ui_elem;
@@ -144,10 +148,10 @@ typedef struct
     db_array(ui_elem) elements;
     db_array(ui_elem) prev_elem_state; // previous frame elements
     u32 font_size;
-    rectangle (*measure_text_width)(const char *text, u32 font_size);
+    rectangle (*measure_text_size)(const char *text, u32 font_size);
 } ui_state;
 
-db_return_code ui_init(rectangle (*measure_text_width)(const char *text, u32 font_size));
+db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font_size));
 db_return_code ui_update_mouse(vector2d mouse_pos, ui_mouse_button_state mouse_button_state);
 
 // this should be called in the end. Because this will reset the ui.
@@ -169,3 +173,14 @@ b8 __ui_column_end(void);
 b8   ui_button(const char *label);
 b8   ui_label(const char *label);
 void ui_checkbox(const char *label, b8 *boolean); //
+
+// id -> the ordering on the list of buttons
+// For example :
+//      0 car --> id = 0
+//      0 motorcycle --> id = 1
+//      0 bycycle --> id = 2
+//
+// based on what the user clicks the choice variable will be set to it.
+// if the user picks car then the choice will be set to the passed id
+// same thing with motorcycle etc.
+void ui_radio_button(const char *label, s32 *choice, s32 id);
