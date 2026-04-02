@@ -52,8 +52,8 @@ int main()
 
         ui_update_mouse((vector2d){mouse_pos.x, mouse_pos.y}, mouse_state);
 
-        static f32 r = 255;
-        static f32 g = 255;
+        static f32 r = 0;
+        static f32 g = 0;
         static f32 b = 0;
         static f32 a = 255;
 

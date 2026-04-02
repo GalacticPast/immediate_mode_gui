@@ -449,19 +449,28 @@ db_array(ui_elem) ui_get_render_commands()
             }
 
             s_pos.x  = *elem->val_ptrs[elem->val_ind] * (1 / elem->slider_max) * elem->dimensions.width;
-            s_pos.x += elem->position.x + 8;
-            if (s_pos.x > elem->position.x + elem->dimensions.width)
-            {
-                s_pos.x = elem->position.x + elem->dimensions.width;
-            }
+            s_pos.x += elem->position.x - 8;
+            s_pos.x  = db_clamp_integer(elem->position.x, s_pos.x, elem->position.x + elem->dimensions.width);
+
             s_pos.y = elem->position.y;
+
+            char buffer[16];
+            snprintf(buffer, 16, "%2.f", *elem->val_ptrs[elem->val_ind]);
+
+            ui_elem   slider_val  = {};
+            db_string txt         = db_string_make(buffer); // we are actually leaking mem here
+            slider_val.label      = txt;                    // just copy the parent pointer
+            slider_val.position   = (vector3d){elem->position.x + 3, elem->position.y + 3, elem->position.z};
+            slider_val.type       = TYPE_TEXT;
+            slider_val.text_color = elem->text_color;
+            db_array_append(state->prev_elem_state, slider_val);
 
             ui_elem slider_box = {};
 
             slider_box.position   = s_pos;
             slider_box.dimensions = (rectangle){8, elem->dimensions.height};
 
-            slider_box.background_color = (color){0, 255, 0, 255}; // green
+            slider_box.background_color = (color){52, 66, 56, 255}; // green
             db_array_append(state->prev_elem_state, slider_box);
         }
     }
