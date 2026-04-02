@@ -131,7 +131,7 @@ void ui_checkbox(const char *label, b8 *boolean)
     static rectangle min_checkbox_dimen = (rectangle){20, 20};
     ui_column()
     {
-        ui_elem *checkbox = __ui_create_box("checkbox",
+        ui_elem *checkbox = __ui_create_box(label,
                                             TYPE_CHECKBOX,
                                             TYPE_SIZE_FIXED,
                                             TYPE_ACTION_PRESSABLE,
@@ -163,7 +163,7 @@ void ui_radio_button(const char *label, s32 *choice, s32 id)
     ASSERT(choice != NULL);
     ui_column()
     {
-        ui_elem *circle = __ui_create_box("circle",
+        ui_elem *circle = __ui_create_box(label,
                                           TYPE_RADIO_BUTTON,
                                           TYPE_SIZE_FIXED,
                                           TYPE_ACTION_PRESSABLE,
