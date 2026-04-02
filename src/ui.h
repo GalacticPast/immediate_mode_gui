@@ -88,6 +88,17 @@ typedef struct
 
 typedef struct
 {
+    f32  number_of_values; // can be 1, 2, 3 or 4
+    f32 *first_val;
+    f32 *second_val;
+    f32 *third_val;
+    f32 *fourth_val;
+    f32  min;
+    f32  max;
+} ui_slider_desc;
+
+typedef struct
+{
     // this is also a linked list/intrusive list
     u64 id;
     s64 index; // index to itself
@@ -129,6 +140,10 @@ typedef struct
     s32     *choice;
     vector2d radio_button_center;
 
+    f32  slider_min;
+    f32  slider_max;
+    f32 *val_ptrs[4];
+
     // text label
     db_string label;
 } ui_elem;
@@ -143,12 +158,14 @@ typedef struct
 
     u64 prev_elem_index; // so that the pushed elem knows what it's sibiling is
 
+    u32 font_size;
+    f32 scale;
+
+    rectangle (*measure_text_size)(const char *text, u32 font_size);
     db_stack(ui_axis_type) curr_axis; // this is for the elements which are inside the row/column scope{}.
     db_stack(s32) curr_parent;        // index of the curr parent
     db_array(ui_elem) elements;
     db_array(ui_elem) prev_elem_state; // previous frame elements
-    u32 font_size;
-    rectangle (*measure_text_size)(const char *text, u32 font_size);
 } ui_state;
 
 db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font_size));
@@ -184,3 +201,7 @@ void ui_checkbox(const char *label, b8 *boolean); //
 // if the user picks car then the choice will be set to the passed id
 // same thing with motorcycle etc.
 void ui_radio_button(const char *label, s32 *choice, s32 id);
+
+#define ui_slider(label, min, max, value) __ui_slider(label, &(ui_slider_desc){.number_of_values = 1, .first_val = &value, .min = min, .max = max})
+#define ui_slider_ext(label, ...) __ui_slider(label, &(ui_slider_desc){__VA_ARGS__})
+void __ui_slider(const char *label, ui_slider_desc *desc);

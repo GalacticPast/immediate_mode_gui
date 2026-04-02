@@ -69,6 +69,17 @@ int main()
             ui_radio_button("radio 0", &choice, 0);
             ui_radio_button("radio 1", &choice, 1);
             ui_radio_button("radio 2", &choice, 2);
+            static f32 r = 0;
+            static f32 g = 0;
+            static f32 b = 0;
+            static f32 a = 0;
+            ui_slider_ext("color",
+                          .min        = 0,
+                          .max        = 255,
+                          .first_val  = &r,
+                          .second_val = &g,
+                          .third_val  = &b,
+                          .fourth_val = &a);
         }
 
         db_array(ui_elem) elems = ui_get_render_commands();
@@ -106,13 +117,13 @@ int main()
 #endif
             }
             case TYPE_LAYOUT_NODE: {
-                DrawRectangleLines(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
-                                   elems[i].dimensions.height, WHITE);
+                // DrawRectangleLines(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
+                //                 elems[i].dimensions.height, WHITE);
             }
             break;
                 break;
             case TYPE_TEXT: {
-                DrawText(elems[i].label, elems[i].position.x, elems[i].position.y, 12, text_color);
+                DrawText(elems[i].label, elems[i].position.x, elems[i].position.y, 12 * 1.2, text_color);
             }
             break;
             case TYPE_RADIO_BUTTON: {

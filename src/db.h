@@ -621,7 +621,7 @@ s64       db_string_length(db_string const str);
 s64       db_string_capacity(db_string const str);
 s64       db_string_available_space(db_string const str);
 void      db_string_clear(db_string str);
-void      db_string_append(db_string str, db_string const other);
+void      db_string_append(db_string str, const char *other);
 void      db_string_append_char(db_string str, const char c);
 b8        db_strings_are_equal(db_string const lhs, db_string const rhs);
 db_string db_string_trim(db_string str, char const *cut_set);
@@ -989,8 +989,8 @@ void __db_array_free(void **array)
 
 u64 db_murmur64A_seed(void const *const key, u64 len, u64 seed)
 {
-    const u64 m = 0xc6a4a7935bd1e995LLU;
-    const int r = 47;
+    const u64  m = 0xc6a4a7935bd1e995LLU;
+    c onst int r = 47;
 
     u64 h = seed ^ (len * m);
 
@@ -999,8 +999,8 @@ u64 db_murmur64A_seed(void const *const key, u64 len, u64 seed)
 
     while (data != end)
     {
-        u64 k = 0;
-        data++;
+        u64 k = *data++;
+
         k *= m;
         k ^= k >> r;
         k *= m;
@@ -1234,9 +1234,10 @@ void db_string_clear(db_string str)
     db_array_clear(str);
 }
 
-void db_string_append(db_string str, db_string const other)
+void db_string_append(db_string str, const char *other)
 {
-    for (s32 i = 0; i < db_array_get_count(other); i++)
+    s32 len = strlen(other);
+    for (s32 i = 0; i < len; i++)
     {
         db_array_append(str, other[i])
     }

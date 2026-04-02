@@ -31,6 +31,7 @@ db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font
     state->arena             = arena;
     state->font_size         = 12; // for now
     state->measure_text_size = measure_text_size;
+    state->scale             = 1.2;
 
     db_stack_init(state->curr_parent);
 
@@ -191,6 +192,101 @@ void ui_radio_button(const char *label, s32 *choice, s32 id)
     }
 }
 
+void __ui_slider(const char *label, ui_slider_desc *desc)
+{
+    ui_column()
+    {
+        ui_elem *text = __ui_create_box(label,
+                                        TYPE_TEXT,
+                                        TYPE_SIZE_BASED_ON_TEXT,
+                                        TYPE_ACTION_NONE,
+                                        TYPE_AXIS_BASED_ON_PARENT,
+                                        TYPE_AXIS_NONE,
+                                        (vector2d){0},
+                                        (rectangle){0});
+
+        if (desc->first_val)
+        {
+            db_string first_label = db_string_make(label);
+            db_string_append(first_label, "##1");
+            ui_elem *first_slider     = __ui_create_box(first_label,
+                                                        TYPE_SLIDER,
+                                                        TYPE_SIZE_FIXED,
+                                                        TYPE_ACTION_DRAGGABLE,
+                                                        TYPE_AXIS_BASED_ON_PARENT,
+                                                        TYPE_AXIS_NONE,
+                                                        (vector2d){0},
+                                                        (rectangle){50, 25});
+            // do the logic
+            first_slider->slider_min  = desc->min;
+            first_slider->slider_max  = desc->max;
+            first_slider->val_ptrs[0] = desc->first_val;
+            db_string_free(first_label);
+
+            if (first_slider->is_active)
+            {
+            }
+        }
+        if (desc->second_val)
+        {
+            db_string second_label = db_string_make(label);
+            db_string_append(second_label, "##2");
+            ui_elem *second_slider     = __ui_create_box(second_label,
+                                                         TYPE_SLIDER,
+                                                         TYPE_SIZE_FIXED,
+                                                         TYPE_ACTION_DRAGGABLE,
+                                                         TYPE_AXIS_BASED_ON_PARENT,
+                                                         TYPE_AXIS_NONE,
+                                                         (vector2d){0},
+                                                         (rectangle){50, 25});
+            // do the logic
+            second_slider->slider_min  = desc->min;
+            second_slider->slider_max  = desc->max;
+            second_slider->val_ptrs[0] = desc->second_val;
+            db_string_free(second_label);
+        }
+        if (desc->third_val)
+        {
+            db_string third_label = db_string_make(label);
+            db_string_append(third_label, "##3");
+            ui_elem *third_slider     = __ui_create_box(third_label,
+                                                        TYPE_SLIDER,
+                                                        TYPE_SIZE_FIXED,
+                                                        TYPE_ACTION_DRAGGABLE,
+                                                        TYPE_AXIS_BASED_ON_PARENT,
+                                                        TYPE_AXIS_NONE,
+                                                        (vector2d){0},
+                                                        (rectangle){50, 25});
+            // do the logic
+            third_slider->slider_min  = desc->min;
+            third_slider->slider_max  = desc->max;
+            third_slider->val_ptrs[0] = desc->third_val;
+
+            db_string_free(third_label);
+        }
+        if (desc->fourth_val)
+        {
+            // try
+            db_string fourth_label = db_string_make(label);
+            db_string_append(fourth_label, "##4");
+            ui_elem *fourth_slider     = __ui_create_box(fourth_label,
+                                                         TYPE_SLIDER,
+                                                         TYPE_SIZE_FIXED,
+                                                         TYPE_ACTION_DRAGGABLE,
+                                                         TYPE_AXIS_BASED_ON_PARENT,
+                                                         TYPE_AXIS_NONE,
+                                                         (vector2d){0},
+                                                         (rectangle){50, 25});
+            // do the logic
+            fourth_slider->slider_min  = desc->min;
+            fourth_slider->slider_max  = desc->max;
+            fourth_slider->val_ptrs[0] = desc->fourth_val;
+
+            db_string_free(fourth_label);
+        }
+    }
+}
+
 b8 __ui_row_begin(void)
 {
     __ui_create_box("",
@@ -232,6 +328,16 @@ b8 __ui_column_end(void)
     db_stack_pop(state->curr_axis); // this will crash if the stack is empty
     db_stack_pop(state->curr_parent);
     return true; // macro hack
+}
+
+void ui_print_elements()
+{
+    ui_elem *elem = NULL;
+    s32      i    = 0;
+    db_array_for_each_ptr(state->elements, i, elem)
+    {
+        printf("{\n id : %lu \n label : %s \n }\n", elem->id, elem->label);
+    }
 }
 
 db_array(ui_elem) ui_get_render_commands()
@@ -302,7 +408,8 @@ db_array(ui_elem) ui_get_render_commands()
         if (!(elem->type & TYPE_LAYOUT_NODE)
             && !(elem->type & TYPE_TEXT)
             && !(elem->type & TYPE_CHECKBOX)
-            && !(elem->type & TYPE_RADIO_BUTTON))
+            && !(elem->type & TYPE_RADIO_BUTTON)
+            && !(elem->type & TYPE_SLIDER))
         {
             ui_elem text    = {};
             text.label      = elem->label; // just copy the parent pointer
@@ -329,10 +436,10 @@ db_array(ui_elem) ui_get_render_commands()
         }
     }
 
+    // ui_print_elements();
     db_array_clear(state->elements);
 
     db_array_append(state->elements, (ui_elem){0});
-
     return state->prev_elem_state;
 }
 
@@ -356,7 +463,7 @@ vector3d __ui_calculate_position(s32 index)
 
     if (parent->type & TYPE_WINDOW)
     {
-        rectangle text_dimen = state->measure_text_size(parent->label, state->font_size);
+        rectangle text_dimen = state->measure_text_size(parent->label, state->font_size * state->scale);
         cursor               = (vector3d){parent->position.x, parent->position.y + text_dimen.height + padding_y, 0};
     }
 
@@ -408,7 +515,7 @@ void __ui_calculate_element_sizes()
         switch (elem->type)
         {
         case TYPE_WINDOW: {
-            rectangle text_size  = state->measure_text_size(elem->label, state->font_size);
+            rectangle text_size  = state->measure_text_size(elem->label, state->font_size * state->scale);
             e_dim->width         = db_max(text_size.width + 2 * padding_x, e_dim->width);
             e_dim->height       += text_size.height + 2 * padding_y;
 
@@ -419,9 +526,12 @@ void __ui_calculate_element_sizes()
         break;
         case TYPE_TEXT:
         case TYPE_BUTTON: {
-            rectangle text_size = state->measure_text_size(elem->label, state->font_size);
+            rectangle text_size = state->measure_text_size(elem->label, state->font_size * state->scale);
             e_dim->width        = text_size.width + 2 * padding_x;
             e_dim->height       = text_size.height + 2 * padding_y;
+
+            e_dim->width  *= state->scale;
+            e_dim->height *= state->scale;
         }
         break;
         case TYPE_LAYOUT_NODE: {
@@ -431,14 +541,17 @@ void __ui_calculate_element_sizes()
         }
         break;
         case TYPE_CHECKBOX:
-        case TYPE_RADIO_BUTTON:
+        case TYPE_RADIO_BUTTON: {
+            e_dim->width  *= state->scale;
+            e_dim->height *= state->scale;
+        }
+        break;
         case TYPE_SLIDER:
         case TYPE_TEXT_FIELD:
         case TYPE_SCROLL_BAR:
         case TYPE_NONE:
             break;
         }
-
         if (parent->index != 0)
         {
             if (parent->axis_child_type & TYPE_AXIS_COLUMN)
@@ -509,8 +622,8 @@ ui_elem *__ui_create_box(const char         *label,
     // set some state for the box
 
     // this is kinda shit
-    box.label     = db_string_make(label);                                                                             // shit
-    u64 id        = db_murmur64A_seed(label, db_string_length(box.label), parent == NULL ? DB_HASH_SEED : parent->id); // shit
+    box.label     = db_string_make(label);                                                                                 // shit
+    u64 id        = db_murmur64A_seed(box.label, db_string_length(box.label), parent == NULL ? DB_HASH_SEED : parent->id); // shit
     box.id        = id;
     // this still deosnt take care of the fact if in the same layout row / column
     // we have two different ui elems with the same label
