@@ -84,6 +84,7 @@ typedef struct
     ui_elem_size_type   size_type;
     vector2d            position;
     rectangle           dimensions;
+    color               background_color;
 } ui_window_desc;
 
 typedef struct
@@ -142,6 +143,7 @@ typedef struct
 
     f32  slider_min;
     f32  slider_max;
+    s32  val_ind;
     f32 *val_ptrs[4];
 
     // text label
@@ -156,12 +158,15 @@ typedef struct
     db_arena arena; // this is just used once actually ?
                     //  we call this and ask for mem only when we do ui_init
 
-    u64 prev_elem_index; // so that the pushed elem knows what it's sibiling is
-
     u32 font_size;
-    f32 scale;
+    f32 scale; // @todo: better scaling logic. Actually I havent even implemented this
+
+    // @todo: explain better
+    u64 hot_elem_id;
+    u64 active_elem_id; // to check if the current active element
 
     rectangle (*measure_text_size)(const char *text, u32 font_size);
+
     db_stack(ui_axis_type) curr_axis; // this is for the elements which are inside the row/column scope{}.
     db_stack(s32) curr_parent;        // index of the curr parent
     db_array(ui_elem) elements;

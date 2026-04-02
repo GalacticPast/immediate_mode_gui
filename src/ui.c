@@ -27,7 +27,6 @@ db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font
 {
     db_arena arena           = db_arena_init();
     state                    = (ui_state *)db_arena_alloc(&arena, sizeof(ui_state));
-    state->prev_elem_index   = 0;
     state->arena             = arena;
     state->font_size         = 12; // for now
     state->measure_text_size = measure_text_size;
@@ -56,10 +55,11 @@ db_return_code ui_update_mouse_pos(vector2d mouse_pos)
 
 b8 __ui_window_begin(const char *title, ui_window_desc *desc)
 {
-    ui_elem_action_type action_type = TYPE_ACTION_DRAGGABLE | TYPE_ACTION_RESIZABLE;
-    ui_elem_size_type   size_type   = TYPE_SIZE_BASED_ON_CHILD;
-    vector2d            position    = {0};
-    rectangle           dimensions  = {0};
+    ui_elem_action_type action_type      = TYPE_ACTION_NONE;
+    ui_elem_size_type   size_type        = TYPE_SIZE_BASED_ON_CHILD;
+    vector2d            position         = {0};
+    rectangle           dimensions       = {0};
+    color               background_color = (color){105, 80, 76, 255};
 
     if (desc)
     {
@@ -79,6 +79,7 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
         {
             size_type = desc->size_type;
         }
+        background_color = desc->background_color;
     }
 
     ui_elem *elem = __ui_create_box(title,
@@ -90,7 +91,7 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
                                     position,
                                     dimensions);
 
-    elem->background_color = (color){105, 80, 76, 255};
+    elem->background_color = background_color;
     elem->text_color       = (color){255, 255, 255, 255};
     return true;
 }
@@ -220,12 +221,10 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             // do the logic
             first_slider->slider_min  = desc->min;
             first_slider->slider_max  = desc->max;
+            first_slider->val_ind     = 0;
             first_slider->val_ptrs[0] = desc->first_val;
-            db_string_free(first_label);
 
-            if (first_slider->is_active)
-            {
-            }
+            db_string_free(first_label);
         }
         if (desc->second_val)
         {
@@ -242,7 +241,8 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             // do the logic
             second_slider->slider_min  = desc->min;
             second_slider->slider_max  = desc->max;
-            second_slider->val_ptrs[0] = desc->second_val;
+            second_slider->val_ind     = 1;
+            second_slider->val_ptrs[1] = desc->second_val;
             db_string_free(second_label);
         }
         if (desc->third_val)
@@ -260,7 +260,8 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             // do the logic
             third_slider->slider_min  = desc->min;
             third_slider->slider_max  = desc->max;
-            third_slider->val_ptrs[0] = desc->third_val;
+            third_slider->val_ind     = 2;
+            third_slider->val_ptrs[2] = desc->third_val;
 
             db_string_free(third_label);
         }
@@ -280,7 +281,8 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             // do the logic
             fourth_slider->slider_min  = desc->min;
             fourth_slider->slider_max  = desc->max;
-            fourth_slider->val_ptrs[0] = desc->fourth_val;
+            fourth_slider->val_ind     = 3;
+            fourth_slider->val_ptrs[3] = desc->fourth_val;
 
             db_string_free(fourth_label);
         }
@@ -356,7 +358,6 @@ db_array(ui_elem) ui_get_render_commands()
         }
     }
 
-    state->mouse_pos = (vector2d){0, 0};
     db_array_clear(state->prev_elem_state);
     db_stack_clear(state->curr_parent);
     // this will also clear the prev_elem_state
@@ -434,12 +435,42 @@ db_array(ui_elem) ui_get_render_commands()
 
             db_array_append(state->prev_elem_state, shadow_button);
         }
+        if (elem->type & TYPE_SLIDER)
+        {
+            //@warn: should we be doing this here?
+            vector3d s_pos = elem->position;
+            if (elem->is_active)
+            {
+                f32 point_in_box = state->mouse_pos.x - elem->position.x;
+                point_in_box     = db_clamp_integer(0, point_in_box, elem->dimensions.width);
+                f32 rel_val      = point_in_box * elem->slider_max * (1 / elem->dimensions.width);
+                ASSERT(rel_val <= elem->slider_max);
+                *elem->val_ptrs[elem->val_ind] = rel_val;
+            }
+
+            s_pos.x  = *elem->val_ptrs[elem->val_ind] * (1 / elem->slider_max) * elem->dimensions.width;
+            s_pos.x += elem->position.x + 8;
+            if (s_pos.x > elem->position.x + elem->dimensions.width)
+            {
+                s_pos.x = elem->position.x + elem->dimensions.width;
+            }
+            s_pos.y = elem->position.y;
+
+            ui_elem slider_box = {};
+
+            slider_box.position   = s_pos;
+            slider_box.dimensions = (rectangle){8, elem->dimensions.height};
+
+            slider_box.background_color = (color){0, 255, 0, 255}; // green
+            db_array_append(state->prev_elem_state, slider_box);
+        }
     }
 
     // ui_print_elements();
     db_array_clear(state->elements);
 
     db_array_append(state->elements, (ui_elem){0});
+    state->mouse_pos = (vector2d){0, 0};
     return state->prev_elem_state;
 }
 
@@ -638,17 +669,16 @@ ui_elem *__ui_create_box(const char         *label,
 
     ASSERT(db_string_length(box.label) == (s64)strlen(label));
     // it doesnt matter if the parent.id is 0 because 0 is the sentinel node
-    box.type            = type;
-    box.action_type     = action_type;
-    box.size_type       = size_type;
-    box.index           = db_array_get_count(state->elements);
-    box.position        = (vector3d){position.x, position.y, 0};
-    box.dimensions      = dimensions;
-    box.axis_type       = axis_type;
-    box.axis_child_type = axis_child_type;
-    box.child_count     = 0;
-    box.parent_index    = parent->index;
-
+    box.type              = type;
+    box.action_type       = action_type;
+    box.size_type         = size_type;
+    box.index             = db_array_get_count(state->elements);
+    box.position          = (vector3d){position.x, position.y, 0};
+    box.dimensions        = dimensions;
+    box.axis_type         = axis_type;
+    box.axis_child_type   = axis_child_type;
+    box.child_count       = 0;
+    box.parent_index      = parent->index;
     ui_elem *prev_sibling = __ui_get_prev_sibling(parent->index);
 
     if (prev_sibling->parent_index == box.parent_index) // checking cause the prev sibling might be the sentinel node -> which means it didnt have any prev siblings
@@ -667,7 +697,7 @@ ui_elem *__ui_create_box(const char         *label,
         ASSERT(!(parent->axis_child_type & TYPE_AXIS_NONE));
     }
 
-    if (!(type & TYPE_LAYOUT_NODE))
+    if (!(type & TYPE_LAYOUT_NODE) && !(type & TYPE_WINDOW))
     {
         box.text_color       = (color){255, 255, 255, 255};
         box.background_color = (color){90, 128, 133, 255};
@@ -675,10 +705,40 @@ ui_elem *__ui_create_box(const char         *label,
 
     b8 is_hot    = false;
     b8 is_active = false;
-    if (prev && !(action_type & TYPE_ACTION_NONE))
+    if (prev && !(action_type == TYPE_ACTION_NONE))
     {
-        is_hot    = __ui_check_mouse_hover(prev->position, prev->dimensions);
-        is_active = is_hot && (state->mouse_btn_state & TYPE_MOUSE_LEFT_BUTTON_RELEASED);
+        is_hot = __ui_check_mouse_hover(prev->position, prev->dimensions);
+        if (is_hot)
+        {
+            state->hot_elem_id = box.id;
+        }
+        else
+        {
+            state->hot_elem_id = 0;
+        }
+
+        if (is_hot && state->mouse_btn_state & TYPE_MOUSE_LEFT_BUTTON_PRESSED)
+        {
+            if (state->active_elem_id == 0)
+            {
+                is_active             = true;
+                state->active_elem_id = box.id;
+            }
+        }
+        else if (state->mouse_btn_state & TYPE_MOUSE_LEFT_BUTTON_RELEASED)
+        {
+            is_active             = false;
+            state->active_elem_id = 0;
+        }
+
+        // if the user is still pressing the button then
+        if (action_type & TYPE_ACTION_DRAGGABLE
+            && state->mouse_btn_state & TYPE_MOUSE_LEFT_BUTTON_PRESSED
+            && state->active_elem_id == box.id)
+        {
+            is_active             = true;
+            state->active_elem_id = box.id;
+        }
 
         if (is_hot & !(type & TYPE_LAYOUT_NODE))
         {

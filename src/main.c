@@ -23,7 +23,6 @@ int main()
     Vector2               mouse_pos   = {};
     ui_mouse_button_state mouse_state = 0;
 
-    b8 a = false;
     while (!WindowShouldClose())
     {
         mouse_pos   = GetMousePosition();
@@ -53,7 +52,12 @@ int main()
 
         ui_update_mouse((vector2d){mouse_pos.x, mouse_pos.y}, mouse_state);
 
-        ui_window_ext("Hello world", .position = {100, 100})
+        static f32 r = 255;
+        static f32 g = 255;
+        static f32 b = 0;
+        static f32 a = 255;
+
+        ui_window_ext("Hello world", .position = {100, 100}, .background_color = {.r = r, .g = g, .b = b, .a = a})
         {
             ui_column()
             {
@@ -64,15 +68,13 @@ int main()
                 }
             }
             ui_button("Hello ?");
-            ui_checkbox("Checkbox", &a);
+            static b8 check = false;
+            ui_checkbox("Checkbox", &check);
             static s32 choice = -1;
             ui_radio_button("radio 0", &choice, 0);
             ui_radio_button("radio 1", &choice, 1);
             ui_radio_button("radio 2", &choice, 2);
-            static f32 r = 0;
-            static f32 g = 0;
-            static f32 b = 0;
-            static f32 a = 0;
+
             ui_slider_ext("color",
                           .min        = 0,
                           .max        = 255,

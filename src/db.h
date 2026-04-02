@@ -120,6 +120,8 @@ typedef s8 b8;
 #define min_s16 ((s16)0x8000)
 #define min_s8 ((s8)0x80)
 
+#define db_clamp_integer(min, val_to_clamp, max) val_to_clamp >= min ? (val_to_clamp >= max ? max : val_to_clamp) : min
+
 #define defer_loop(a, b) for (b8 i = 0, res = a; i != 1 && res; i++, b)
 
 #define bitmask1 0x00000001
@@ -989,8 +991,8 @@ void __db_array_free(void **array)
 
 u64 db_murmur64A_seed(void const *const key, u64 len, u64 seed)
 {
-    const u64  m = 0xc6a4a7935bd1e995LLU;
-    c onst int r = 47;
+    const u64 m = 0xc6a4a7935bd1e995LLU;
+    const int r = 47;
 
     u64 h = seed ^ (len * m);
 
