@@ -17,6 +17,9 @@ ui_elem *__ui_create_box(const char         *label,
 
 db_return_code ui_update_mouse(vector2d mouse_pos, ui_mouse_button_state mouse_button_state)
 {
+    state->prev_mouse_pos       = state->mouse_pos;
+    state->prev_mouse_btn_state = state->mouse_btn_state;
+
     state->mouse_btn_state = mouse_button_state;
     state->mouse_pos       = mouse_pos;
 
@@ -31,6 +34,7 @@ db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font
     state->font_size         = 12; // for now
     state->measure_text_size = measure_text_size;
     state->scale             = 1.2;
+    state->window_counter    = 0;
 
     db_stack_init(state->curr_parent);
 
@@ -82,7 +86,9 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
         background_color = desc->background_color;
     }
 
-    ui_elem *elem = __ui_create_box(title,
+    char str[16];
+    snprintf(str, 16, "window##%d", state->window_counter);
+    ui_elem *elem = __ui_create_box(str,
                                     TYPE_WINDOW,
                                     size_type,
                                     action_type,
@@ -90,6 +96,17 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
                                     TYPE_AXIS_ROW,
                                     position,
                                     dimensions);
+    state->window_counter++;
+
+    ui_elem *title_box = __ui_create_box(
+        title,
+        TYPE_TREE,
+        TYPE_SIZE_BASED_ON_PARENT,
+        TYPE_ACTION_ANCHORED_TO_PARENT | TYPE_ACTION_DRAGGABLE,
+        TYPE_AXIS_BASED_ON_PARENT,
+        TYPE_AXIS_COLUMN,
+        (vector2d){0},
+        (rectangle){0});
 
     elem->background_color = background_color;
     elem->text_color       = (color){255, 255, 255, 255};
@@ -410,7 +427,8 @@ db_array(ui_elem) ui_get_render_commands()
             && !(elem->type & TYPE_TEXT)
             && !(elem->type & TYPE_CHECKBOX)
             && !(elem->type & TYPE_RADIO_BUTTON)
-            && !(elem->type & TYPE_SLIDER))
+            && !(elem->type & TYPE_SLIDER)
+            && !(elem->type & TYPE_WINDOW))
         {
             ui_elem text    = {};
             text.label      = elem->label; // just copy the parent pointer
@@ -479,7 +497,9 @@ db_array(ui_elem) ui_get_render_commands()
     db_array_clear(state->elements);
 
     db_array_append(state->elements, (ui_elem){0});
-    state->mouse_pos = (vector2d){0, 0};
+
+    state->window_counter = 0; // reset the counter
+
     return state->prev_elem_state;
 }
 
@@ -501,17 +521,28 @@ vector3d __ui_calculate_position(s32 index)
 
     vector3d cursor = {parent->position.x + padding_x, parent->position.y + padding_y, 0};
 
-    if (parent->type & TYPE_WINDOW)
-    {
-        rectangle text_dimen = state->measure_text_size(parent->label, state->font_size * state->scale);
-        cursor               = (vector3d){parent->position.x, parent->position.y + text_dimen.height + padding_y, 0};
-    }
-
+    // if (parent->type & TYPE_WINDOW)
+    // {
+    //     rectangle text_dimen = state->measure_text_size(parent->label, state->font_size * state->scale);
+    //     cursor               = (vector3d){parent->position.x, parent->position.y + text_dimen.height + padding_y, 0};
+    // }
+    //
     ui_elem *node = first_child;
 
     for (; node->index != 0;
          node = db_array_get_index_ptr(state->elements, node->next_sibling_index))
     {
+        if (node->action_type & TYPE_ACTION_ANCHORED_TO_PARENT)
+        {
+            if (node->is_active)
+            {
+                f32 delta_x         = state->mouse_pos.x - state->prev_mouse_pos.x;
+                f32 delta_y         = state->mouse_pos.y - state->prev_mouse_pos.y;
+                // @warn: clamp needed ??
+                parent->position.x += delta_x;
+                parent->position.y += delta_y;
+            }
+        }
         if (node->axis_type & TYPE_AXIS_COLUMN)
         {
             node->position  = cursor;
@@ -562,6 +593,13 @@ void __ui_calculate_element_sizes()
             // initial padding
             e_dim->width  += padding_x;
             e_dim->height += padding_y;
+        }
+        break;
+        case TYPE_TREE: // @todo: we have to do another pass to account for any size changes after this point
+        {
+            rectangle text_size = state->measure_text_size(elem->label, state->font_size * state->scale);
+            e_dim->width        = p_dim->width;
+            e_dim->height       = text_size.height + 2 * padding_y;
         }
         break;
         case TYPE_TEXT:
@@ -678,11 +716,15 @@ ui_elem *__ui_create_box(const char         *label,
 
     ASSERT(db_string_length(box.label) == (s64)strlen(label));
     // it doesnt matter if the parent.id is 0 because 0 is the sentinel node
-    box.type              = type;
-    box.action_type       = action_type;
-    box.size_type         = size_type;
-    box.index             = db_array_get_count(state->elements);
-    box.position          = (vector3d){position.x, position.y, 0};
+    box.type        = type;
+    box.action_type = action_type;
+    box.size_type   = size_type;
+    box.index       = db_array_get_count(state->elements);
+    box.position    = (vector3d){position.x, position.y, 0};
+    if (prev)
+    {
+        box.position = prev->position;
+    }
     box.dimensions        = dimensions;
     box.axis_type         = axis_type;
     box.axis_child_type   = axis_child_type;

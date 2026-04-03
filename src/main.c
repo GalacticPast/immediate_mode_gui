@@ -52,12 +52,7 @@ int main()
 
         ui_update_mouse((vector2d){mouse_pos.x, mouse_pos.y}, mouse_state);
 
-        static f32 r = 0;
-        static f32 g = 0;
-        static f32 b = 0;
-        static f32 a = 255;
-
-        ui_window_ext("Hello world", .position = {100, 100}, .background_color = {.r = r, .g = g, .b = b, .a = a})
+        ui_window_ext("Hello world", .position = {100, 100})
         {
             ui_column()
             {
@@ -75,13 +70,10 @@ int main()
             ui_radio_button("radio 1", &choice, 1);
             ui_radio_button("radio 2", &choice, 2);
 
-            ui_slider_ext("color",
-                          .min        = 0,
-                          .max        = 255,
-                          .first_val  = &r,
-                          .second_val = &g,
-                          .third_val  = &b,
-                          .fourth_val = &a);
+            static f32 r = 0;
+            ui_slider_ext("color", .min = 0,
+                          .max       = 255,
+                          .first_val = &r);
         }
 
         db_array(ui_elem) elems = ui_get_render_commands();
@@ -98,6 +90,7 @@ int main()
             case TYPE_BUTTON:
             case TYPE_CHECKBOX:
             case TYPE_SLIDER:
+            case TYPE_TREE:
             case TYPE_TEXT_FIELD:
             case TYPE_SCROLL_BAR: {
 #if 0

@@ -39,25 +39,28 @@ typedef enum
     TYPE_TEXT_FIELD   = bit6,
     TYPE_SCROLL_BAR   = bit7,
     TYPE_LAYOUT_NODE  = bit8,
+    TYPE_TREE         = bit9, //@todo: think of a better name
     // i think we should seperate out the render commands from this
-    TYPE_TEXT         = bit9,
+    TYPE_TEXT         = bit10,
 } ui_elem_type;
 
 typedef enum
 {
-    TYPE_SIZE_NONE           = bit0,
-    TYPE_SIZE_BASED_ON_CHILD = bit1,
-    TYPE_SIZE_FIXED          = bit2,
-    TYPE_SIZE_BASED_ON_TEXT  = bit3,
+    TYPE_SIZE_NONE            = bit0,
+    TYPE_SIZE_BASED_ON_CHILD  = bit1,
+    TYPE_SIZE_BASED_ON_PARENT = bit2,
+    TYPE_SIZE_FIXED           = bit3,
+    TYPE_SIZE_BASED_ON_TEXT   = bit4,
 } ui_elem_size_type;
 
 typedef enum
 {
-    TYPE_ACTION_NONE      = bit0,
-    TYPE_ACTION_FIXED     = bit1,
-    TYPE_ACTION_DRAGGABLE = bit2,
-    TYPE_ACTION_RESIZABLE = bit3,
-    TYPE_ACTION_PRESSABLE = bit4,
+    TYPE_ACTION_NONE               = bit0,
+    TYPE_ACTION_FIXED              = bit1,
+    TYPE_ACTION_DRAGGABLE          = bit2,
+    TYPE_ACTION_RESIZABLE          = bit3,
+    TYPE_ACTION_PRESSABLE          = bit4,
+    TYPE_ACTION_ANCHORED_TO_PARENT = bit5, // if you drag an element with this proprerty, it will also reflect on the parent
 } ui_elem_action_type;
 
 typedef enum
@@ -152,6 +155,8 @@ typedef struct
 
 typedef struct
 {
+    ui_mouse_button_state prev_mouse_btn_state;
+    vector2d              prev_mouse_pos;
     ui_mouse_button_state mouse_btn_state;
     vector2d              mouse_pos;
 
@@ -171,6 +176,9 @@ typedef struct
     db_stack(s32) curr_parent;        // index of the curr parent
     db_array(ui_elem) elements;
     db_array(ui_elem) prev_elem_state; // previous frame elements
+
+    // @warn: Experimental
+    s32 window_counter;
 } ui_state;
 
 db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font_size));
