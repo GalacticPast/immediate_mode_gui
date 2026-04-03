@@ -83,7 +83,6 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
         {
             size_type = desc->size_type;
         }
-        background_color = desc->background_color;
     }
 
     char str[16];
@@ -541,6 +540,8 @@ vector3d __ui_calculate_position(s32 index)
                 // @warn: clamp needed ??
                 parent->position.x += delta_x;
                 parent->position.y += delta_y;
+
+                cursor = parent->position;
             }
         }
         if (node->axis_type & TYPE_AXIS_COLUMN)
