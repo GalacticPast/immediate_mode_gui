@@ -371,6 +371,7 @@ db_array(ui_elem) ui_get_render_commands()
         if (elem->type & TYPE_WINDOW)
         {
             __ui_calculate_position(i);
+            break; // find the first window and then its fine
         }
     }
 
