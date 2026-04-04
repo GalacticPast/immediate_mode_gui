@@ -178,7 +178,8 @@ typedef struct
     db_array(ui_elem) prev_elem_state; // previous frame elements
 
     // @warn: Experimental
-    s32 window_counter;
+    s32      window_counter;
+    ui_elem *curr_top_parent; // the parent which is at the top of other windows
 } ui_state;
 
 db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font_size));

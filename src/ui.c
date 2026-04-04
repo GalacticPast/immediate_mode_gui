@@ -35,7 +35,6 @@ db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font
     state->measure_text_size = measure_text_size;
     state->scale             = 1.2;
     state->window_counter    = 0;
-
     db_stack_init(state->curr_parent);
 
     db_stack_init(state->curr_axis);
@@ -46,6 +45,9 @@ db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font
 
     // sentinel node
     db_array_append(state->elements, (ui_elem){0});
+
+    state->curr_top_parent = &state->elements[0];
+
     return DB_SUCCESS;
 }
 
@@ -348,13 +350,13 @@ b8 __ui_column_end(void)
     return true; // macro hack
 }
 
-void ui_print_elements()
+void ui_print_elements(db_array(ui_elem) array)
 {
     ui_elem *elem = NULL;
     s32      i    = 0;
-    db_array_for_each_ptr(state->elements, i, elem)
+    db_array_for_each_ptr(array, i, elem)
     {
-        printf("{\n id : %lu \n label : %s \n }\n", elem->id, elem->label);
+        printf("{\n index : %ld \n id : %lu \n label : %s \n }\n", elem->index, elem->id, elem->label);
     }
 }
 
@@ -364,11 +366,10 @@ db_array(ui_elem) ui_get_render_commands()
     __ui_calculate_element_sizes(); // calculate the sizes
 
     // sort the parent_indexes
-    // bubble sort
-    {
-        db_array(ui_elem *) windows = NULL;
-        db_array_init_arena(windows, &state->arena);
+    db_array(ui_elem *) windows = NULL;
+    db_array_init_arena(windows, &state->arena);
 
+    {
         ui_elem *node = NULL;
         u32      i    = 0;
 
@@ -379,136 +380,178 @@ db_array(ui_elem) ui_get_render_commands()
                 db_array_append(windows, node);
             }
         }
+    }
+    s32 count = db_array_get_count(windows);
 
-        s32 count = db_array_get_count(windows);
-
-        for (s32 i = 0; i < count; i++)
+    // bubble sort
+    for (s32 j = 0; j < count; j++)
+    {
+        for (s32 i = 1; i < count; i++)
         {
-            ui_elem *a = windows[i];
+            if (windows[i - 1]->position.z > windows[i]->position.z)
+            {
+                ui_elem *temp  = windows[i];
+                windows[i]     = windows[i - 1];
+                windows[i - 1] = temp;
+            }
         }
     }
+    // make sures that the z indexes are placed correctly
+    // @refactor: refactor this too
+    if (state->curr_top_parent->position.z != count - 1)
+    {
+        state->curr_top_parent->position.z = count - 1;
+        for (s32 j = 0; j < count; j++)
+        {
+            if (state->curr_top_parent != windows[j] && windows[j]->position.z != 0)
+            {
+                windows[j]->position.z -= 1;
+            }
+        }
+    }
+
     __ui_calculate_position(1); // because 0 is the null node
 
     db_array_clear(state->prev_elem_state);
     db_stack_clear(state->curr_parent);
-    // this will also clear the prev_elem_state
-    ui_elem *elem = NULL;
-    s32      i    = 0;
 
-    db_array_for_each_ptr(state->elements, i, elem)
+    ui_elem *window = NULL;
+    s32      i      = 0;
+
+    // @refactor: this is unreadable
+    // explain how I am doing this plz
+    db_array_for_each(windows, i, window)
     {
-        if ((elem->type & TYPE_TEXT))
+        db_array_append(state->prev_elem_state, *window);
+
+        ui_elem *node = db_array_get_index_ptr(state->elements, window->first_child_index);
+        s32      j    = node->index;
+
+        for (;
+             j < db_array_get_count(state->elements) && !(node->type & TYPE_WINDOW) && node->index != 0;
+             j++)
         {
-            elem->position = (vector3d){elem->position.x + 3, elem->position.y + 3, elem->position.z};
-        }
-        if (elem->type & TYPE_CHECKBOX)
-        {
-            ASSERT(elem->checkbox_val != NULL);
-            if (*elem->checkbox_val)
+            node = db_array_get_index_ptr(state->elements, j);
+            if (node->type & TYPE_WINDOW) // base case
             {
-                f32 two_thirds_y = elem->position.y + (elem->dimensions.height * 0.666666);
-                f32 half_x       = elem->position.x + (elem->dimensions.width * 0.5);
-                f32 scale        = 6.5;
-
-                elem->check_common_start = (vector2d){half_x, two_thirds_y};
-
-                elem->check_second_half_end = (vector2d){1.35, -1.28};   // -------->   thanks  desmos
-                elem->check_first_half_end  = (vector2d){-1.023, -0.71}; // -- /
-
-                elem->check_first_half_end.x  *= scale;
-                elem->check_first_half_end.y  *= scale;
-                elem->check_second_half_end.x *= scale;
-                elem->check_second_half_end.y *= scale;
-
-                elem->check_first_half_end.x += half_x;
-                elem->check_first_half_end.y += two_thirds_y;
-
-                elem->check_second_half_end.x += half_x;
-                elem->check_second_half_end.y += two_thirds_y;
+                break;
             }
-        }
-        if (elem->type & TYPE_RADIO_BUTTON)
-        {
-            f32 half_x = elem->position.x + (elem->dimensions.width * 0.5);
-            f32 half_y = elem->position.y + (elem->dimensions.height * 0.5);
-
-            elem->radio_button_center.x = half_x;
-            elem->radio_button_center.y = half_y;
-        }
-        db_array_append(state->prev_elem_state, *elem);
-
-        //  @refactor: this because every other elem will have a text that we need to render --> ?? with the helll
-        if (!(elem->type & TYPE_LAYOUT_NODE)
-            && !(elem->type & TYPE_TEXT)
-            && !(elem->type & TYPE_CHECKBOX)
-            && !(elem->type & TYPE_RADIO_BUTTON)
-            && !(elem->type & TYPE_SLIDER)
-            && !(elem->type & TYPE_WINDOW))
-        {
-            ui_elem text    = {};
-            text.label      = elem->label; // just copy the parent pointer
-            // @todo: fix the text centering
-            text.position   = (vector3d){elem->position.x + 3, elem->position.y + 3, elem->position.z};
-            text.type       = TYPE_TEXT;
-            text.text_color = elem->text_color;
-            db_array_append(state->prev_elem_state, text);
-        }
-        if (elem->type & TYPE_RADIO_BUTTON && elem->radio_button_id == *elem->choice)
-        {
-            ui_elem shadow_button = {};
-            f32     half_x        = elem->position.x + (elem->dimensions.width * 0.5);
-            f32     half_y        = elem->position.y + (elem->dimensions.height * 0.5);
-
-            shadow_button.type                = elem->type;
-            shadow_button.radio_button_center = elem->radio_button_center;
-
-            shadow_button.dimensions.width  = elem->dimensions.width - 3;
-            shadow_button.dimensions.height = elem->dimensions.width - 3;
-            shadow_button.background_color  = (color){255, 0, 0, 255}; // red
-
-            db_array_append(state->prev_elem_state, shadow_button);
-        }
-        if (elem->type & TYPE_SLIDER)
-        {
-            //@warn: should we be doing this here?
-            vector3d s_pos = elem->position;
-            if (elem->is_active)
+            if ((node->type & TYPE_TEXT))
             {
-                f32 point_in_box = state->mouse_pos.x - elem->position.x;
-                point_in_box     = db_clamp_integer(0, point_in_box, elem->dimensions.width);
-                f32 rel_val      = point_in_box * elem->slider_max * (1 / elem->dimensions.width);
-                ASSERT(rel_val <= elem->slider_max);
-                *elem->val_ptrs[elem->val_ind] = rel_val;
+                node->position = (vector3d){node->position.x + 3, node->position.y + 3, node->position.z};
             }
+            if (node->type & TYPE_CHECKBOX)
+            {
+                ASSERT(node->checkbox_val != NULL);
+                if (*node->checkbox_val)
+                {
+                    f32 two_thirds_y = node->position.y + (node->dimensions.height * 0.666666);
+                    f32 half_x       = node->position.x + (node->dimensions.width * 0.5);
+                    f32 scale        = 6.5;
 
-            s_pos.x  = *elem->val_ptrs[elem->val_ind] * (1 / elem->slider_max) * elem->dimensions.width;
-            s_pos.x += elem->position.x - 8;
-            s_pos.x  = db_clamp_integer(elem->position.x, s_pos.x, elem->position.x + elem->dimensions.width);
+                    node->check_common_start = (vector2d){half_x, two_thirds_y};
 
-            s_pos.y = elem->position.y;
+                    node->check_second_half_end = (vector2d){1.35, -1.28};   // -------->   thanks  desmos
+                    node->check_first_half_end  = (vector2d){-1.023, -0.71}; // -- /
 
-            char buffer[16];
-            snprintf(buffer, 16, "%2.f", *elem->val_ptrs[elem->val_ind]);
+                    node->check_first_half_end.x  *= scale;
+                    node->check_first_half_end.y  *= scale;
+                    node->check_second_half_end.x *= scale;
+                    node->check_second_half_end.y *= scale;
 
-            ui_elem   slider_val  = {};
-            db_string txt         = db_string_make(buffer); // we are actually leaking mem here
-            slider_val.label      = txt;                    // just copy the parent pointer
-            slider_val.position   = (vector3d){elem->position.x + 3, elem->position.y + 3, elem->position.z};
-            slider_val.type       = TYPE_TEXT;
-            slider_val.text_color = elem->text_color;
-            db_array_append(state->prev_elem_state, slider_val);
+                    node->check_first_half_end.x += half_x;
+                    node->check_first_half_end.y += two_thirds_y;
 
-            ui_elem slider_box = {};
+                    node->check_second_half_end.x += half_x;
+                    node->check_second_half_end.y += two_thirds_y;
+                }
+            }
+            if (node->type & TYPE_RADIO_BUTTON)
+            {
+                f32 half_x = node->position.x + (node->dimensions.width * 0.5);
+                f32 half_y = node->position.y + (node->dimensions.height * 0.5);
 
-            slider_box.position   = s_pos;
-            slider_box.dimensions = (rectangle){8, elem->dimensions.height};
+                node->radio_button_center.x = half_x;
+                node->radio_button_center.y = half_y;
+            }
+            db_array_append(state->prev_elem_state, *node);
 
-            slider_box.background_color = (color){52, 66, 56, 255}; // green
-            db_array_append(state->prev_elem_state, slider_box);
+            //  @refactor: this because every other node will have a text that we need to render --> ?? with the helll
+            if (!(node->type & TYPE_LAYOUT_NODE)
+                && !(node->type & TYPE_TEXT)
+                && !(node->type & TYPE_CHECKBOX)
+                && !(node->type & TYPE_RADIO_BUTTON)
+                && !(node->type & TYPE_SLIDER)
+                && !(node->type & TYPE_WINDOW))
+            {
+                ui_elem text    = {};
+                text.index      = node->index;
+                text.label      = node->label; // just copy the parent pointer
+                                               // @todo: fix the text centering
+                text.position   = (vector3d){node->position.x + 3, node->position.y + 3, node->position.z};
+                text.type       = TYPE_TEXT;
+                text.text_color = node->text_color;
+                db_array_append(state->prev_elem_state, text);
+            }
+            if (node->type & TYPE_RADIO_BUTTON && node->radio_button_id == *node->choice)
+            {
+                ui_elem shadow_button = {};
+                f32     half_x        = node->position.x + (node->dimensions.width * 0.5);
+                f32     half_y        = node->position.y + (node->dimensions.height * 0.5);
+
+                shadow_button.index               = node->index;
+                shadow_button.type                = node->type;
+                shadow_button.radio_button_center = node->radio_button_center;
+
+                shadow_button.dimensions.width  = node->dimensions.width - 3;
+                shadow_button.dimensions.height = node->dimensions.width - 3;
+                shadow_button.background_color  = (color){255, 0, 0, 255}; // red
+
+                db_array_append(state->prev_elem_state, shadow_button);
+            }
+            if (node->type & TYPE_SLIDER)
+            {
+                //@warn: should we be doing this here?
+                vector3d s_pos = node->position;
+                if (node->is_active)
+                {
+                    f32 point_in_box = state->mouse_pos.x - node->position.x;
+                    point_in_box     = db_clamp_integer(0, point_in_box, node->dimensions.width);
+                    f32 rel_val      = point_in_box * node->slider_max * (1 / node->dimensions.width);
+                    ASSERT(rel_val <= node->slider_max);
+                    *node->val_ptrs[node->val_ind] = rel_val;
+                }
+
+                s_pos.x  = *node->val_ptrs[node->val_ind] * (1 / node->slider_max) * node->dimensions.width;
+                s_pos.x += node->position.x - 8;
+                s_pos.x  = db_clamp_integer(node->position.x, s_pos.x, node->position.x + node->dimensions.width);
+
+                s_pos.y = node->position.y;
+
+                char buffer[16];
+                snprintf(buffer, 16, "%2.f", *node->val_ptrs[node->val_ind]);
+
+                ui_elem   slider_val  = {};
+                db_string txt         = db_string_make(buffer); // we are actually leaking mem here
+                slider_val.index      = node->index;
+                slider_val.label      = txt; // just copy the parent pointer
+                slider_val.position   = (vector3d){node->position.x + 3, node->position.y + 3, node->position.z};
+                slider_val.type       = TYPE_TEXT;
+                slider_val.text_color = node->text_color;
+                db_array_append(state->prev_elem_state, slider_val);
+
+                ui_elem slider_box = {};
+
+                slider_box.position   = s_pos;
+                slider_box.dimensions = (rectangle){8, node->dimensions.height};
+
+                slider_box.background_color = (color){52, 66, 56, 255}; // green
+                db_array_append(state->prev_elem_state, slider_box);
+            }
         }
     }
 
-    // ui_print_elements();
+    // ui_print_elements(state->prev_elem_state);
     db_array_clear(state->elements);
 
     db_array_append(state->elements, (ui_elem){0});
@@ -534,7 +577,7 @@ vector3d __ui_calculate_position(s32 index)
 
     ui_elem *parent = db_array_get_index_ptr(state->elements, first_child->parent_index);
 
-    vector3d cursor = {parent->position.x + padding_x, parent->position.y + padding_y, 0};
+    vector3d cursor = {parent->position.x + padding_x, parent->position.y + padding_y, parent->position.z};
 
     ui_elem *node = first_child;
 
@@ -564,7 +607,6 @@ vector3d __ui_calculate_position(s32 index)
             node->position  = cursor;
             cursor.y       += node->dimensions.height + padding_y;
         }
-
         __ui_calculate_position(node->first_child_index);
     }
     return cursor;
@@ -764,7 +806,7 @@ ui_elem *__ui_create_box(const char         *label,
         box.text_color       = (color){255, 255, 255, 255};
         box.background_color = (color){90, 128, 133, 255};
     }
-
+    // @refactor: pull this in a seprate func and explain the logic
     b8 is_hot    = false;
     b8 is_active = false;
     if (prev && !(action_type == TYPE_ACTION_NONE))
@@ -788,11 +830,11 @@ ui_elem *__ui_create_box(const char         *label,
             }
             // find the parent_window
             ui_elem *parent_window = parent;
-            while (!(parent->type & TYPE_WINDOW))
+            while (!(parent_window->type & TYPE_WINDOW))
             {
                 parent_window = db_array_get_index_ptr(state->elements, parent_window->parent_index);
             }
-            parent_window->position.z = 1;
+            state->curr_top_parent = parent_window;
         }
         else if (state->mouse_btn_state & TYPE_MOUSE_LEFT_BUTTON_RELEASED)
         {

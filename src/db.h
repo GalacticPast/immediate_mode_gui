@@ -354,6 +354,9 @@ db_return_code __db_array_resize(void **array);
 db_return_code __db_array_init(void **array, db_arena *arena, size_t type_size);
 void           __db_array_free(void **array);
 
+#define db_array_for_each(array, i, iter) \
+    for (i = 0, iter = array[i]; i < db_array_get_count(array); i++, iter = array[i])
+
 #define db_array_for_each_ptr(array, i, iter) \
     for (i = 0, iter = &array[i]; i < db_array_get_count(array); i++, iter = &array[i])
 
