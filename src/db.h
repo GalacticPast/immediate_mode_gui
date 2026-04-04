@@ -342,7 +342,8 @@ typedef struct db_array_header
 #define DB_ARRAY_DEFAULT_RESIZE_FACTOR 2
 
 #define db_array(type) type *
-#define db_array_init(array) __db_array_init((void **)&array, sizeof(*array))
+#define db_array_init(array) __db_array_init((void **)&array, NULL, sizeof(*array))
+#define db_array_init_arena(array, arena) __db_array_init((void **)&array, arena, sizeof(*array))
 #define db_array_free(array) __db_array_free((void **)&array)
 #define db_array_get_header(array) (db_array_header *)((char *)array - (sizeof(db_array_header)))
 #define db_array_get_count(array) (db_array_get_header(array))->count
@@ -350,11 +351,11 @@ typedef struct db_array_header
 #define db_array_get_capacity(array) \
     (db_array_get_header(array))->total_length / (db_array_get_header(array))->type_size
 db_return_code __db_array_resize(void **array);
-db_return_code __db_array_init(void **array, size_t type_size);
+db_return_code __db_array_init(void **array, db_arena *arena, size_t type_size);
 void           __db_array_free(void **array);
 
 #define db_array_for_each_ptr(array, i, iter) \
-    for (i = 0, elem = &array[i]; i < db_array_get_count(array); i++, elem = &array[i])
+    for (i = 0, iter = &array[i]; i < db_array_get_count(array); i++, iter = &array[i])
 
 #define db_array_get_index(array, index)                                                   \
     ({                                                                                     \
@@ -945,9 +946,17 @@ db_return_code __db_array_resize(void **array)
     return DB_SUCCESS;
 }
 
-db_return_code __db_array_init(void **array, size_t type_size)
+db_return_code __db_array_init(void **array, db_arena *p_arena, size_t type_size)
 {
-    db_arena arena = db_arena_init();
+    db_arena arena = {};
+    if (p_arena)
+    {
+        arena = *p_arena;
+    }
+    else
+    {
+        arena = db_arena_init();
+    }
 
     // maybe a bit wasteful but we've already commited this much isnt it?
     size_t header_plus_array_size = arena.total_size;

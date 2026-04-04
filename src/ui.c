@@ -363,23 +363,38 @@ db_array(ui_elem) ui_get_render_commands()
 
     __ui_calculate_element_sizes(); // calculate the sizes
 
-    // calculate relative positions
-    ui_elem *elem = NULL;
-    s32      i    = 0;
-    db_array_for_each_ptr(state->elements, i, elem)
+    // sort the parent_indexes
+    // bubble sort
     {
-        if (elem->type & TYPE_WINDOW)
+        db_array(ui_elem *) windows = NULL;
+        db_array_init_arena(windows, &state->arena);
+
+        ui_elem *node = NULL;
+        u32      i    = 0;
+
+        db_array_for_each_ptr(state->elements, i, node)
         {
-            __ui_calculate_position(i);
-            break; // find the first window and then its fine
+            if (node->type & TYPE_WINDOW)
+            {
+                db_array_append(windows, node);
+            }
+        }
+
+        s32 count = db_array_get_count(windows);
+
+        for (s32 i = 0; i < count; i++)
+        {
+            ui_elem *a = windows[i];
         }
     }
+    __ui_calculate_position(1); // because 0 is the null node
 
     db_array_clear(state->prev_elem_state);
     db_stack_clear(state->curr_parent);
     // this will also clear the prev_elem_state
-    elem = NULL;
-    i    = 0;
+    ui_elem *elem = NULL;
+    s32      i    = 0;
+
     db_array_for_each_ptr(state->elements, i, elem)
     {
         if ((elem->type & TYPE_TEXT))
@@ -521,12 +536,6 @@ vector3d __ui_calculate_position(s32 index)
 
     vector3d cursor = {parent->position.x + padding_x, parent->position.y + padding_y, 0};
 
-    // if (parent->type & TYPE_WINDOW)
-    // {
-    //     rectangle text_dimen = state->measure_text_size(parent->label, state->font_size * state->scale);
-    //     cursor               = (vector3d){parent->position.x, parent->position.y + text_dimen.height + padding_y, 0};
-    // }
-    //
     ui_elem *node = first_child;
 
     for (; node->index != 0;
@@ -777,6 +786,13 @@ ui_elem *__ui_create_box(const char         *label,
                 is_active             = true;
                 state->active_elem_id = box.id;
             }
+            // find the parent_window
+            ui_elem *parent_window = parent;
+            while (!(parent->type & TYPE_WINDOW))
+            {
+                parent_window = db_array_get_index_ptr(state->elements, parent_window->parent_index);
+            }
+            parent_window->position.z = 1;
         }
         else if (state->mouse_btn_state & TYPE_MOUSE_LEFT_BUTTON_RELEASED)
         {
@@ -787,6 +803,7 @@ ui_elem *__ui_create_box(const char         *label,
         // if the user is still pressing the button then
         if (action_type & TYPE_ACTION_DRAGGABLE
             && state->mouse_btn_state & TYPE_MOUSE_LEFT_BUTTON_PRESSED
+            && state->prev_mouse_btn_state & TYPE_MOUSE_LEFT_BUTTON_PRESSED
             && state->active_elem_id == box.id)
         {
             is_active             = true;
