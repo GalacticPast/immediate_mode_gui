@@ -54,7 +54,7 @@ int main()
 
         ui_window_ext("Hello world", .position = {100, 100})
         {
-            ui_column()
+            ui_row()
             {
                 ui_label("Press me: ");
                 if (ui_button("Press"))
@@ -78,7 +78,7 @@ int main()
 
         ui_window_ext("another window", .position = {500, 300})
         {
-            ui_column()
+            ui_row()
             {
                 ui_label("Press me: ");
                 if (ui_button("Press"))
@@ -102,7 +102,7 @@ int main()
 
         ui_window_ext("another window window ", .position = {200, 300})
         {
-            ui_column()
+            ui_row()
             {
                 ui_label("Press me: ");
                 if (ui_button("Press"))

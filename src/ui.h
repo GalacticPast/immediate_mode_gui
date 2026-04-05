@@ -45,11 +45,13 @@ typedef enum
 
 typedef enum
 {
-    TYPE_SIZE_NONE            = bit0,
-    TYPE_SIZE_BASED_ON_CHILD  = bit1,
-    TYPE_SIZE_BASED_ON_PARENT = bit2,
-    TYPE_SIZE_FIXED           = bit3,
-    TYPE_SIZE_BASED_ON_TEXT   = bit4,
+    TYPE_SIZE_NONE                  = bit0,
+    TYPE_SIZE_BASED_ON_CHILD        = bit1,
+    TYPE_SIZE_BASED_ON_PARENT       = bit2,
+    TYPE_SIZE_FIXED                 = bit3,
+    TYPE_SIZE_BASED_ON_TEXT         = bit4,
+    // incompatible with SIZE_FIXED, SIZE_BASED_ON_TEXT,
+    TYPE_SIZE_EQUAL_RATIO_TO_PARENT = bit5,
 } ui_elem_size_type;
 
 typedef enum
@@ -97,6 +99,11 @@ typedef struct
     rectangle           dimensions;
     color               background_color;
 } ui_window_desc;
+
+typedef struct
+{
+    ui_elem_size_type children_size_type;
+} ui_layout_desc;
 
 typedef struct
 {

@@ -97,7 +97,7 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
                                     size_type,
                                     action_type,
                                     TYPE_AXIS_NONE,
-                                    TYPE_AXIS_ROW,
+                                    TYPE_AXIS_COLUMN,
                                     TYPE_RENDER_RECTANGLE,
                                     position,
                                     dimensions);
@@ -121,6 +121,18 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
 
 b8 __ui_window_end(void)
 {
+    ui_row()
+    {
+        ui_elem *box = __ui_create_box("",
+                                       TYPE_BUTTON,
+                                       TYPE_SIZE_FIXED,
+                                       TYPE_ACTION_PRESSABLE | TYPE_ACTION_DRAGGABLE,
+                                       TYPE_AXIS_BASED_ON_PARENT,
+                                       TYPE_AXIS_NONE,
+                                       TYPE_RENDER_RECTANGLE,
+                                       (vector2d){0},
+                                       (rectangle){25, 25});
+    }
     db_stack_pop(state->curr_parent);
     return true;
 }
@@ -156,7 +168,7 @@ b8 ui_label(const char *label)
 void ui_checkbox(const char *label, b8 *boolean)
 {
     static rectangle min_checkbox_dimen = (rectangle){20, 20};
-    ui_column()
+    ui_row()
     {
         ui_elem *checkbox = __ui_create_box(label,
                                             TYPE_CHECKBOX,
@@ -190,7 +202,7 @@ void ui_checkbox(const char *label, b8 *boolean)
 void ui_radio_button(const char *label, s32 *choice, s32 id)
 {
     ASSERT(choice != NULL);
-    ui_column()
+    ui_row()
     {
         ui_elem *circle = __ui_create_box(label,
                                           TYPE_RADIO_BUTTON,
@@ -224,7 +236,7 @@ void ui_radio_button(const char *label, s32 *choice, s32 id)
 
 void __ui_slider(const char *label, ui_slider_desc *desc)
 {
-    ui_column()
+    ui_row()
     {
         ui_elem *text = __ui_create_box(label,
                                         TYPE_LABEL,
@@ -649,16 +661,17 @@ vector3d __ui_calculate_position(s32 index)
                 cursor = parent->position;
             }
         }
-        if (node->axis_type & TYPE_AXIS_COLUMN)
+        if (node->axis_type & TYPE_AXIS_ROW)
         {
             node->position  = cursor;
             cursor.x       += node->dimensions.width + padding_x;
         }
-        else if (node->axis_type & TYPE_AXIS_ROW)
+        else if (node->axis_type & TYPE_AXIS_COLUMN)
         {
             node->position  = cursor;
             cursor.y       += node->dimensions.height + padding_y;
         }
+
         if (node->render_type & TYPE_RENDER_TEXT)
         {
             //@fix: make this dynamic
@@ -666,6 +679,7 @@ vector3d __ui_calculate_position(s32 index)
             node->text_position.x = node->position.x + 3;
             node->text_position.y = node->position.y + 3;
         }
+
         __ui_calculate_position(node->first_child_index);
     }
     return cursor;
@@ -718,12 +732,15 @@ void __ui_calculate_element_sizes()
             case TYPE_LABEL:
             case TYPE_BUTTON:
             {
-                rectangle text_size = state->measure_text_size(elem->label, state->font_size * state->scale);
-                e_dim->width        = text_size.width + 2 * padding_x;
-                e_dim->height       = text_size.height + 2 * padding_y;
+                if (elem->size_type & TYPE_SIZE_BASED_ON_TEXT)
+                {
+                    rectangle text_size = state->measure_text_size(elem->label, state->font_size * state->scale);
+                    e_dim->width        = text_size.width + 2 * padding_x;
+                    e_dim->height       = text_size.height + 2 * padding_y;
 
-                e_dim->width  *= state->scale;
-                e_dim->height *= state->scale;
+                    e_dim->width  *= state->scale;
+                    e_dim->height *= state->scale;
+                }
             }
             break;
             case TYPE_LAYOUT_NODE:
@@ -748,12 +765,12 @@ void __ui_calculate_element_sizes()
         }
         if (parent->index != 0)
         {
-            if (parent->axis_child_type & TYPE_AXIS_COLUMN)
+            if (parent->axis_child_type & TYPE_AXIS_ROW)
             {
                 p_dim->width  += e_dim->width + padding_x;
                 p_dim->height  = db_max(p_dim->height, e_dim->height + padding_y);
             }
-            else if (parent->axis_child_type & TYPE_AXIS_ROW)
+            else if (parent->axis_child_type & TYPE_AXIS_COLUMN)
             {
                 p_dim->width   = db_max(p_dim->width, e_dim->width + padding_x);
                 p_dim->height += e_dim->height + padding_y;
