@@ -124,58 +124,44 @@ int main()
                           .first_val = &r);
         }
 
-        db_array(ui_elem) elems = ui_get_render_commands();
+        db_array(ui_render_element) elems = ui_get_render_commands();
 
         for (s32 i = 0; i < db_array_get_count(elems); i++)
         {
-            Color   background_color = *(struct Color *)((void *)&elems[i].background_color);
-            Color   text_color       = *(struct Color *)((void *)&elems[i].text_color);
-            Vector2 position         = *(struct Vector2 *)((void *)&elems[i].position);
+            Vector2 position   = (Vector2){elems[i].position.x, elems[i].position.y};
+            Vector2 dimensions = (Vector2){elems[i].dimensions.width, elems[i].dimensions.height};
+            Color   color      = (Color){elems[i].color.r, elems[i].color.g, elems[i].color.b, elems[i].color.a};
+            Vector2 center     = (Vector2){elems[i].center.x, elems[i].center.y};
+            Vector2 start_pos  = (Vector2){elems[i].start_pos.x, elems[i].start_pos.y};
+            Vector2 end_pos    = (Vector2){elems[i].end_pos.x, elems[i].end_pos.y};
+
             switch (elems[i].type)
             {
-            case TYPE_NONE:
-            case TYPE_WINDOW:
-            case TYPE_BUTTON:
-            case TYPE_CHECKBOX:
-            case TYPE_SLIDER:
-            case TYPE_TREE:
-            case TYPE_TEXT_FIELD:
-            case TYPE_SCROLL_BAR: {
-#if 0
-
-                DrawRectangleLines(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
-                                   elems[i].dimensions.height, background_color);
-#else
-                DrawRectangle(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
-                              elems[i].dimensions.height, background_color);
-                b8 res = elems[i].type & TYPE_CHECKBOX;
-                if (res) // @refactor: this is kinda shit
+                case TYPE_RENDER_RECTANGLE:
                 {
-                    Vector2 common_point = *(Vector2 *)((void *)&elems[i].check_common_start);
-                    Vector2 first_half   = *(Vector2 *)((void *)&elems[i].check_first_half_end);
-                    Vector2 second_half  = *(Vector2 *)((void *)&elems[i].check_second_half_end);
-                    DrawLineEx(common_point, first_half, 3, WHITE);
-                    DrawLineEx(common_point, second_half, 3, WHITE);
+                    DrawRectangleV((Vector2)position, dimensions, color);
                 }
-#endif
-            }
-            case TYPE_LAYOUT_NODE: {
-                // DrawRectangleLines(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
-                //                 elems[i].dimensions.height, WHITE);
-            }
-            break;
                 break;
-            case TYPE_TEXT: {
-                DrawText(elems[i].label, elems[i].position.x, elems[i].position.y, 12 * 1.2, text_color);
-            }
-            break;
-            case TYPE_RADIO_BUTTON: {
-                Vector2 center = *(Vector2 *)((void *)&elems[i].radio_button_center);
-                DrawCircleV(center, elems[i].dimensions.width / 2, background_color);
-                // DrawRectangle(elems[i].position.x, elems[i].position.y, elems[i].dimensions.width,
-                //               elems[i].dimensions.height, background_color);
-            }
-            break;
+                case TYPE_RENDER_TEXT:
+                {
+                    DrawText(elems[i].label, position.x, position.y, 12, color);
+                }
+                break;
+                case TYPE_RENDER_CIRCLE:
+                {
+                    DrawCircleV(center, elems[i].radius, color);
+                }
+                break;
+                case TYPE_RENDER_LINE:
+                {
+                    DrawLineV(start_pos, end_pos, color);
+                }
+                break;
+                case TYPE_RENDER_NONE:
+                default:
+                {
+                }
+                break;
             }
         }
         EndDrawing();

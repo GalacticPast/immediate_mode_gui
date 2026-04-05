@@ -39,9 +39,8 @@ typedef enum
     TYPE_TEXT_FIELD   = bit6,
     TYPE_SCROLL_BAR   = bit7,
     TYPE_LAYOUT_NODE  = bit8,
-    TYPE_TREE         = bit9, //@todo: think of a better name
-    // i think we should seperate out the render commands from this
-    TYPE_TEXT         = bit10,
+    TYPE_LABEL        = bit9,
+    TYPE_TREE         = bit10, //@todo: think of a better name
 } ui_elem_type;
 
 typedef enum
@@ -80,6 +79,15 @@ typedef enum
     TYPE_MOUSE_RIGHT_BUTTON_RELEASED = bit3,
     TYPE_MOUSE_LEFT_BUTTON_RELEASED  = bit4,
 } ui_mouse_button_state;
+
+typedef enum
+{
+    TYPE_RENDER_NONE      = bit0,
+    TYPE_RENDER_RECTANGLE = bit1,
+    TYPE_RENDER_CIRCLE    = bit2,
+    TYPE_RENDER_TEXT      = bit3,
+    TYPE_RENDER_LINE      = bit4,
+} ui_render_type;
 
 typedef struct
 {
@@ -125,16 +133,15 @@ typedef struct
 
     vector3d  position; // absolute position. the z val used for windows/panels sorting.
     rectangle dimensions;
-
-    // element makeup 💅
-    color background_color;
-    color text_color;
+    color     background_color;
 
     // persistent state
     b8 is_hot;
     b8 is_active;
 
     // type specific data // lol
+    ui_render_type render_type;
+
     b8      *checkbox_val;
     vector2d check_common_start;
     vector2d check_first_half_end;
@@ -151,7 +158,28 @@ typedef struct
 
     // text label
     db_string label;
+    vector3d  text_position;
+    rectangle text_dimensions;
+    color     text_color;
 } ui_elem;
+
+typedef struct
+{
+    ui_render_type type;
+
+    rectangle dimensions;
+    vector3d  position;
+    color     color;
+    // if its TYPE_CIRCLE
+    vector3d center;
+    f32      radius;
+    // if its TYPE_TEXT
+    db_string label;
+    // if its TYPE_LINE
+    vector3d start_pos;
+    vector3d end_pos;
+
+} ui_render_element; // @note: better name?
 
 typedef struct
 {
@@ -172,10 +200,12 @@ typedef struct
 
     rectangle (*measure_text_size)(const char *text, u32 font_size);
 
-    db_stack(ui_axis_type) curr_axis; // this is for the elements which are inside the row/column scope{}.
-    db_stack(s32) curr_parent;        // index of the curr parent
-    db_array(ui_elem) elements;
-    db_array(ui_elem) prev_elem_state; // previous frame elements
+    db_stack(ui_axis_type)      curr_axis;   // this is for the elements which are inside the row/column scope{}. I dont think we use this
+    db_stack(s32)               curr_parent; // index of the curr parent
+    db_array(ui_elem)           elements;
+    db_array(ui_elem)           prev_elem_state; // previous frame elements
+    db_array(ui_elem *)         windows;
+    db_array(ui_render_element) render_elements; // resets every frame
 
     // @warn: Experimental
     s32      window_counter;
@@ -186,7 +216,7 @@ db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font
 db_return_code ui_update_mouse(vector2d mouse_pos, ui_mouse_button_state mouse_button_state);
 
 // this should be called in the end. Because this will reset the ui.
-db_array(ui_elem) ui_get_render_commands();
+db_array(ui_render_element) ui_get_render_commands();
 
 #define ui_row() defer_loop(__ui_row_begin(), __ui_row_end())
 #define ui_column() defer_loop(__ui_column_begin(), __ui_column_end())
