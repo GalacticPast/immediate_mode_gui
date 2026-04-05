@@ -76,54 +76,6 @@ int main()
                           .first_val = &r);
         }
 
-        ui_window_ext("another window", .position = {500, 300})
-        {
-            ui_row()
-            {
-                ui_label("Press me: ");
-                if (ui_button("Press"))
-                {
-                    printf("Hellooo you pressed me. \n");
-                }
-            }
-            ui_button("Hello ?");
-            static b8 check = false;
-            ui_checkbox("Checkbox", &check);
-            static s32 choice = -1;
-            ui_radio_button("radio 0", &choice, 0);
-            ui_radio_button("radio 1", &choice, 1);
-            ui_radio_button("radio 2", &choice, 2);
-
-            static f32 r = 0;
-            ui_slider_ext("color", .min = 0,
-                          .max       = 255,
-                          .first_val = &r);
-        }
-
-        ui_window_ext("another window window ", .position = {200, 300})
-        {
-            ui_row()
-            {
-                ui_label("Press me: ");
-                if (ui_button("Press"))
-                {
-                    printf("Hellooo you pressed me. \n");
-                }
-            }
-            ui_button("Hello ?");
-            static b8 check = false;
-            ui_checkbox("Checkbox", &check);
-            static s32 choice = -1;
-            ui_radio_button("radio 0", &choice, 0);
-            ui_radio_button("radio 1", &choice, 1);
-            ui_radio_button("radio 2", &choice, 2);
-
-            static f32 r = 0;
-            ui_slider_ext("color", .min = 0,
-                          .max       = 255,
-                          .first_val = &r);
-        }
-
         db_array(ui_render_element) elems = ui_get_render_commands();
 
         for (s32 i = 0; i < db_array_get_count(elems); i++)
