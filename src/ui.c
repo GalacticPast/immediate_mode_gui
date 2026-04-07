@@ -421,7 +421,7 @@ void ui_print_elements(db_array(ui_elem) array)
     s32      i    = 0;
     db_array_for_each_ptr(array, i, elem)
     {
-        printf("{\n index : %ld \n id : %lu \n label : %s \n }\n", elem->index, elem->id, elem->label);
+        printf("{\n index : %lld \n id : %llu \n label : %s \n }\n", elem->index, elem->id, elem->label);
     }
 }
 
