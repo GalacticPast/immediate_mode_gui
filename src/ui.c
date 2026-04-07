@@ -415,16 +415,6 @@ b8 __ui_column_end(void)
     return true; // macro hack
 }
 
-void ui_print_elements(db_array(ui_elem) array)
-{
-    ui_elem *elem = NULL;
-    s32      i    = 0;
-    db_array_for_each_ptr(array, i, elem)
-    {
-        printf("{\n index : %lld \n id : %llu \n label : %s \n }\n", elem->index, elem->id, elem->label);
-    }
-}
-
 void __ui_sort_window_z_indexes()
 {
     ui_elem *node = NULL;
