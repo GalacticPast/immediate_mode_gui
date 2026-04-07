@@ -1027,21 +1027,21 @@ u64 db_murmur64A_seed(void const *const key, u64 len, u64 seed)
 
     switch (len & 7)
     {
-    case 7:
-        h ^= (u64)(data2[6]) << 48;
-    case 6:
-        h ^= (u64)(data2[5]) << 40;
-    case 5:
-        h ^= (u64)(data2[4]) << 32;
-    case 4:
-        h ^= (u64)(data2[3]) << 24;
-    case 3:
-        h ^= (u64)(data2[2]) << 16;
-    case 2:
-        h ^= (u64)(data2[1]) << 8;
-    case 1:
-        h ^= (u64)(data2[0]);
-        h *= m;
+        case 7:
+            h ^= (u64)(data2[6]) << 48;
+        case 6:
+            h ^= (u64)(data2[5]) << 40;
+        case 5:
+            h ^= (u64)(data2[4]) << 32;
+        case 4:
+            h ^= (u64)(data2[3]) << 24;
+        case 3:
+            h ^= (u64)(data2[2]) << 16;
+        case 2:
+            h ^= (u64)(data2[1]) << 8;
+        case 1:
+            h ^= (u64)(data2[0]);
+            h *= m;
     };
 
     h ^= h >> r;

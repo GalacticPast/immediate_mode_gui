@@ -105,6 +105,7 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
                                     position,
                                     dimensions);
     state->window_counter++;
+    elem->padding = (vector2d){3, 3};
 
     ui_elem *title_box = __ui_create_box(
         title,
@@ -154,6 +155,8 @@ b8 ui_button(const char *label)
                                     TYPE_RENDER_RECTANGLE | TYPE_RENDER_TEXT,
                                     (vector2d){0},
                                     (rectangle){0});
+
+    elem->growth_factor = 1;
 
     return elem->is_active;
 }
@@ -264,21 +267,22 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
         {
             db_string first_label = db_string_make(label);
             db_string_append(first_label, "##1");
-            ui_elem *first_slider     = __ui_create_box(first_label,
-                                                        TYPE_SLIDER,
-                                                        TYPE_SIZE_MIN_DIMENSIONS | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
-                                                        TYPE_POS_PLACE_CHILDREN_AT_CENTER,
-                                                        TYPE_ACTION_DRAGGABLE,
-                                                        TYPE_AXIS_BASED_ON_PARENT,
-                                                        TYPE_AXIS_NONE,
-                                                        TYPE_RENDER_RECTANGLE,
-                                                        (vector2d){0},
-                                                        (rectangle){50, 25});
+            ui_elem *first_slider       = __ui_create_box(first_label,
+                                                          TYPE_SLIDER,
+                                                          TYPE_SIZE_BASED_ON_TEXT | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
+                                                          TYPE_POS_PLACE_CHILDREN_AT_CENTER,
+                                                          TYPE_ACTION_DRAGGABLE,
+                                                          TYPE_AXIS_BASED_ON_PARENT,
+                                                          TYPE_AXIS_NONE,
+                                                          TYPE_RENDER_RECTANGLE,
+                                                          (vector2d){0},
+                                                          (rectangle){50, 25});
             // do the logic
-            first_slider->slider_min  = desc->min;
-            first_slider->slider_max  = desc->max;
-            first_slider->val_ind     = 0;
-            first_slider->val_ptrs[0] = desc->first_val;
+            first_slider->slider_min    = desc->min;
+            first_slider->slider_max    = desc->max;
+            first_slider->val_ind       = 0;
+            first_slider->val_ptrs[0]   = desc->first_val;
+            first_slider->growth_factor = 1;
 
             db_string_free(first_label);
         }
@@ -286,43 +290,44 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
         {
             db_string second_label = db_string_make(label);
             db_string_append(second_label, "##2");
-            ui_elem *second_slider     = __ui_create_box(second_label,
-                                                         TYPE_SLIDER,
-                                                         TYPE_SIZE_MIN_DIMENSIONS | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
-                                                         TYPE_POS_PLACE_CHILDREN_AT_CENTER,
-                                                         TYPE_ACTION_DRAGGABLE,
-                                                         TYPE_AXIS_BASED_ON_PARENT,
-                                                         TYPE_AXIS_NONE,
-                                                         TYPE_RENDER_RECTANGLE,
-                                                         (vector2d){0},
-                                                         (rectangle){50, 25});
+            ui_elem *second_slider       = __ui_create_box(second_label,
+                                                           TYPE_SLIDER,
+                                                           TYPE_SIZE_BASED_ON_TEXT | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
+                                                           TYPE_POS_PLACE_CHILDREN_AT_CENTER,
+                                                           TYPE_ACTION_DRAGGABLE,
+                                                           TYPE_AXIS_BASED_ON_PARENT,
+                                                           TYPE_AXIS_NONE,
+                                                           TYPE_RENDER_RECTANGLE,
+                                                           (vector2d){0},
+                                                           (rectangle){50, 25});
             // do the logic
-            second_slider->slider_min  = desc->min;
-            second_slider->slider_max  = desc->max;
-            second_slider->val_ind     = 1;
-            second_slider->val_ptrs[1] = desc->second_val;
+            second_slider->slider_min    = desc->min;
+            second_slider->slider_max    = desc->max;
+            second_slider->val_ind       = 1;
+            second_slider->val_ptrs[1]   = desc->second_val;
+            second_slider->growth_factor = 1;
             db_string_free(second_label);
         }
         if (desc->third_val)
         {
             db_string third_label = db_string_make(label);
             db_string_append(third_label, "##3");
-            ui_elem *third_slider     = __ui_create_box(third_label,
-                                                        TYPE_SLIDER,
-                                                        TYPE_SIZE_MIN_DIMENSIONS | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
-                                                        TYPE_POS_PLACE_CHILDREN_AT_CENTER,
-                                                        TYPE_ACTION_DRAGGABLE,
-                                                        TYPE_AXIS_BASED_ON_PARENT,
-                                                        TYPE_AXIS_NONE,
-                                                        TYPE_RENDER_RECTANGLE,
-                                                        (vector2d){0},
-                                                        (rectangle){50, 25});
+            ui_elem *third_slider       = __ui_create_box(third_label,
+                                                          TYPE_SLIDER,
+                                                          TYPE_SIZE_BASED_ON_TEXT | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
+                                                          TYPE_POS_PLACE_CHILDREN_AT_CENTER,
+                                                          TYPE_ACTION_DRAGGABLE,
+                                                          TYPE_AXIS_BASED_ON_PARENT,
+                                                          TYPE_AXIS_NONE,
+                                                          TYPE_RENDER_RECTANGLE,
+                                                          (vector2d){0},
+                                                          (rectangle){50, 25});
             // do the logic
-            third_slider->slider_min  = desc->min;
-            third_slider->slider_max  = desc->max;
-            third_slider->val_ind     = 2;
-            third_slider->val_ptrs[2] = desc->third_val;
-
+            third_slider->slider_min    = desc->min;
+            third_slider->slider_max    = desc->max;
+            third_slider->val_ind       = 2;
+            third_slider->val_ptrs[2]   = desc->third_val;
+            third_slider->growth_factor = 1;
             db_string_free(third_label);
         }
         if (desc->fourth_val)
@@ -330,21 +335,22 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             // try
             db_string fourth_label = db_string_make(label);
             db_string_append(fourth_label, "##4");
-            ui_elem *fourth_slider     = __ui_create_box(fourth_label,
-                                                         TYPE_SLIDER,
-                                                         TYPE_SIZE_MIN_DIMENSIONS | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
-                                                         TYPE_POS_PLACE_CHILDREN_AT_CENTER,
-                                                         TYPE_ACTION_DRAGGABLE,
-                                                         TYPE_AXIS_BASED_ON_PARENT,
-                                                         TYPE_AXIS_NONE,
-                                                         TYPE_RENDER_RECTANGLE,
-                                                         (vector2d){0},
-                                                         (rectangle){50, 25});
+            ui_elem *fourth_slider       = __ui_create_box(fourth_label,
+                                                           TYPE_SLIDER,
+                                                           TYPE_SIZE_BASED_ON_TEXT | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
+                                                           TYPE_POS_PLACE_CHILDREN_AT_CENTER,
+                                                           TYPE_ACTION_DRAGGABLE,
+                                                           TYPE_AXIS_BASED_ON_PARENT,
+                                                           TYPE_AXIS_NONE,
+                                                           TYPE_RENDER_RECTANGLE,
+                                                           (vector2d){0},
+                                                           (rectangle){50, 25});
             // do the logic
-            fourth_slider->slider_min  = desc->min;
-            fourth_slider->slider_max  = desc->max;
-            fourth_slider->val_ind     = 3;
-            fourth_slider->val_ptrs[3] = desc->fourth_val;
+            fourth_slider->slider_min    = desc->min;
+            fourth_slider->slider_max    = desc->max;
+            fourth_slider->val_ind       = 3;
+            fourth_slider->val_ptrs[3]   = desc->fourth_val;
+            fourth_slider->growth_factor = 1;
 
             db_string_free(fourth_label);
         }
@@ -490,15 +496,15 @@ db_array(ui_render_element) ui_get_render_commands()
                 break;
             }
             // debug specfic
-#if 0 
-            if(node->type & TYPE_LAYOUT_NODE)
+#if 0
+            if (node->type & TYPE_LAYOUT_NODE)
             {
                 ui_render_element elem = {};
 
                 elem.dimensions = node->dimensions;
                 elem.position   = node->position;
                 elem.type       = TYPE_RENDER_RECTANGLE;
-                elem.color      = (color){255,255,255,255};
+                elem.color      = (color){255, 255, 255, 255};
                 db_array_append(state->render_elements, elem);
             }
 #endif
@@ -508,6 +514,14 @@ db_array(ui_render_element) ui_get_render_commands()
 
             if (node->render_type & TYPE_RENDER_RECTANGLE)
             {
+                ui_render_element border = {};
+
+                border.dimensions = (rectangle){node->dimensions.width + 4, node->dimensions.height + 4};
+                border.position   = (vector3d){node->position.x - 2, node->position.y - 2, node->position.z};
+                border.type       = TYPE_RENDER_RECTANGLE;
+                border.color      = (color){0, 0, 0, 255};
+                db_array_append(state->render_elements, border);
+
                 ui_render_element elem = {};
 
                 elem.dimensions = node->dimensions;
@@ -525,6 +539,16 @@ db_array(ui_render_element) ui_get_render_commands()
                 elem.color             = node->text_color;
                 elem.label             = node->label;
                 db_array_append(state->render_elements, elem);
+
+#if 0 // debug specific
+                ui_render_element d_elem = {};
+
+                d_elem.dimensions = node->dimensions;
+                d_elem.position   = node->position;
+                d_elem.type       = TYPE_RENDER_RECTANGLE;
+                d_elem.color      = (color){255, 255, 255, 100};
+                db_array_append(state->render_elements, d_elem);
+#endif
             }
             if (node->render_type & TYPE_RENDER_CIRCLE)
             {
@@ -588,11 +612,19 @@ db_array(ui_render_element) ui_get_render_commands()
                 vector3d s_pos = node->position;
                 if (node->is_active)
                 {
-                    f32 point_in_box = state->mouse_pos.x - node->position.x;
-                    point_in_box     = db_clamp_integer(0, point_in_box, node->dimensions.width);
-                    f32 rel_val      = point_in_box * node->slider_max * (1 / node->dimensions.width);
-                    ASSERT(rel_val <= node->slider_max);
-                    *node->val_ptrs[node->val_ind] = rel_val;
+                    // Ensure we don't divide by zero
+                    if (node->dimensions.width > 0.0f)
+                    {
+
+                        f32 point_in_box = state->mouse_pos.x - node->position.x;
+                        point_in_box     = db_clamp_integer(0, point_in_box, (f32)node->dimensions.width);
+
+                        f32 percentage = point_in_box / (f32)node->dimensions.width;
+                        f32 rel_val    = node->slider_min + (percentage * (node->slider_max - node->slider_min));
+
+                        ASSERT(rel_val <= node->slider_max && rel_val >= node->slider_min);
+                        *node->val_ptrs[node->val_ind] = rel_val;
+                    }
                 }
 
                 s_pos.x  = *node->val_ptrs[node->val_ind] * (1 / node->slider_max) * node->dimensions.width;
@@ -604,12 +636,19 @@ db_array(ui_render_element) ui_get_render_commands()
                 char buffer[16];
                 snprintf(buffer, 16, "%2.f", *node->val_ptrs[node->val_ind]);
 
+                rectangle *n_dimen    = &node->dimensions;
+                vector3d  *n_pos      = &node->position;
+                rectangle  text_dimen = state->measure_text_size(buffer, state->font_size);
+                vector2d   center     = {(n_dimen->width * 0.5) + n_pos->x,
+                                         (n_dimen->height * 0.5) + n_pos->y};
+
                 ui_render_element slider_val = {};
                 db_string         txt        = db_string_make(buffer); // @FIX: we are actually leaking mem here
                 slider_val.label             = txt;                    // just copy the parent pointer
-                slider_val.position          = (vector3d){node->position.x + 3, node->position.y + 3, node->position.z};
+                slider_val.position          = (vector3d){center.x - (text_dimen.width * 0.5), center.y - (text_dimen.height * 0.5), node->position.z};
                 slider_val.type              = TYPE_RENDER_TEXT;
                 slider_val.color             = node->text_color;
+
                 db_array_append(state->render_elements, slider_val);
 
                 ui_render_element slider_box = {};
@@ -668,13 +707,96 @@ void __ui_resize_n_reposition_elements(s32 index)
              w_child_count != 0 && l_node->index != 0;
              w_child_count--, l_node = db_array_get_index_ptr(state->elements, l_node->next_sibling_index))
         {
-            b8                children_have_flex_property = false;
-            db_array(ui_elem) elements                    = NULL;
-            db_array_init_arena(elements, &state->arena);
+            // increase the width / height of the layout node depending on the width/height of the parent
+            // check if the layout has the grow / shrink proerty though
+            l_node->dimensions.width = window->dimensions.width - window->padding.x;
+
+            b8 children_have_flex_property = false;
+
+            s32 fixed_widths_sum            = 0;
+            s32 child_with_flex_prop_shares = 0;
+            s32 child_with_flex_props       = 0;
+
+            ui_elem *elem = db_array_get_index_ptr(state->elements, l_node->first_child_index);
+            for (s32 i = elem->index;
+                 elem->parent_index == l_node->index;
+                 elem = db_array_get_index_ptr(state->elements, elem->next_sibling_index))
+            {
+                if (elem->size_type & TYPE_SIZE_FLEX_GROW || elem->size_type & TYPE_SIZE_FLEX_SHRINK)
+                {
+                    children_have_flex_property  = true;
+                    child_with_flex_prop_shares += elem->growth_factor;
+                    child_with_flex_props++;
+                }
+                else // hmmm is this true?
+                {
+                    fixed_widths_sum += elem->dimensions.width;
+                }
+            }
+            s32 remaining_space = l_node->dimensions.width - fixed_widths_sum;
+
+            f32 remainder = (f32)remaining_space / child_with_flex_prop_shares;
+
+            vector3d cursor = l_node->position;
+
+            if (children_have_flex_property)
+            {
+                elem = db_array_get_index_ptr(state->elements, l_node->first_child_index);
+                for (s32 i = elem->index;
+                     elem->parent_index == l_node->index;
+                     elem = db_array_get_index_ptr(state->elements, elem->next_sibling_index))
+                {
+                    if (elem->size_type & TYPE_SIZE_FIXED)
+                    {
+                        elem->position = cursor;
+                    }
+                    else if (elem->size_type & TYPE_SIZE_FLEX_GROW)
+                    {
+                        elem->position         = cursor;
+                        elem->dimensions.width = remainder * elem->growth_factor;
+
+                        if (elem->render_type & TYPE_RENDER_TEXT)
+                        {
+                            rectangle *n_dimen    = &elem->dimensions;
+                            vector3d  *n_pos      = &elem->position;
+                            rectangle *text_dimen = &elem->text_dimensions;
+                            vector2d   center     = {(n_dimen->width * 0.5) + n_pos->x,
+                                                     (n_dimen->height * 0.5) + n_pos->y};
+                            switch (elem->children_pos_type)
+                            {
+                                case TYPE_POS_PLACE_CHILDREN_AT_CENTER:
+                                    elem->text_position.x = center.x - (text_dimen->width * 0.5);
+                                    elem->text_position.y = center.y - (text_dimen->height * 0.5);
+                                    break;
+                                case TYPE_POS_PLACE_CHILDREN_AT_END:
+                                {
+                                }
+                                break;
+                                case TYPE_POS_PLACE_CHILDREN_AT_START:
+                                {
+                                }
+                                break;
+                                default:
+                                    break;
+                            }
+                        }
+                    }
+
+                    cursor.x += elem->dimensions.width;
+                }
+            }
+            else
+            {
+                elem = db_array_get_index_ptr(state->elements, l_node->first_child_index);
+                for (s32 i = elem->index;
+                     elem->parent_index == l_node->index;
+                     elem = db_array_get_index_ptr(state->elements, elem->next_sibling_index))
+                {
+                }
+            }
         }
     }
 }
-
 void __ui_calculate_position(s32 index)
 {
     if (index == 0)
@@ -926,12 +1048,13 @@ ui_elem *__ui_create_box(const char                    *label,
     {
         box.position = prev->position;
     }
-    box.dimensions        = dimensions;
-    box.axis_type         = axis_type;
-    box.axis_child_type   = axis_child_type;
-    box.child_count       = 0;
-    box.parent_index      = parent->index;
-    box.render_type       = render_command_type;
+    box.dimensions      = dimensions;
+    box.axis_type       = axis_type;
+    box.axis_child_type = axis_child_type;
+    box.child_count     = 0;
+    box.parent_index    = parent->index;
+    box.render_type     = render_command_type;
+
     ui_elem *prev_sibling = __ui_get_prev_sibling(parent->index);
 
     if (prev_sibling->parent_index == box.parent_index) // checking cause the prev sibling might be the sentinel node -> which means it didnt have any prev siblings

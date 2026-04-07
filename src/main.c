@@ -62,6 +62,10 @@ int main()
                 {
                     printf("Hellooo you pressed me. \n");
                 }
+                if (ui_button("lol"))
+                {
+                    printf("Hellooo you pressed me. \n");
+                }
             }
             static b8 check = false;
             ui_checkbox("Checkbox", &check);
@@ -71,9 +75,16 @@ int main()
             ui_radio_button("radio 2", &choice, 2);
 
             static f32 r = 0;
-            ui_slider_ext("color", .min = 0,
-                          .max       = 255,
-                          .first_val = &r);
+            static f32 g = 0;
+            static f32 b = 0;
+            static f32 a = 0;
+            ui_slider_ext("color",
+                          .min        = 0,
+                          .max        = 255,
+                          .first_val  = &r,
+                          .second_val = &g,
+                          .third_val  = &b,
+                          .fourth_val = &a);
         }
 
         db_array(ui_render_element) elems = ui_get_render_commands();

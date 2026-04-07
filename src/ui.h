@@ -24,8 +24,8 @@ typedef struct
 
 typedef struct
 {
-    f32 width;
-    f32 height;
+    s32 width;
+    s32 height;
 } rectangle;
 
 typedef enum
@@ -46,18 +46,17 @@ typedef enum
 typedef enum
 {
     TYPE_SIZE_NONE            = bit0,
-    TYPE_SIZE_BASED_ON_CHILD  = bit1,
-    TYPE_SIZE_BASED_ON_PARENT = bit2,
-    TYPE_SIZE_FIXED           = bit3,
-    TYPE_SIZE_MIN_DIMENSIONS  = bit3,
-    TYPE_SIZE_BASED_ON_TEXT   = bit5,
+    TYPE_SIZE_FIXED           = bit1, // this means you passed the size yourself
+    TYPE_SIZE_BASED_ON_CHILD  = bit2,
+    TYPE_SIZE_BASED_ON_PARENT = bit3,
+    TYPE_SIZE_BASED_ON_TEXT   = bit4,
 
     // can be 0 1 2 3
     // grow and shrink can be used simultaneously
     // if specified shink/grow then you have to provide the basis
     // otherwise it will default to 0
-    TYPE_SIZE_FLEX_GROW   = bit6,
-    TYPE_SIZE_FLEX_SHRINK = bit7,
+    TYPE_SIZE_FLEX_GROW   = bit5,
+    TYPE_SIZE_FLEX_SHRINK = bit6,
 } ui_elem_size_type;
 
 typedef enum
@@ -172,6 +171,8 @@ typedef struct
     rectangle dimensions;
     color     background_color;
     vector2d  padding;
+    s32       growth_factor; // will default to 0 if set TYPE_SIZE_FLEX_GROW
+    s32       shrink_factor; // will default to 0 if set TYPE_SIZE_FLEX_GROW
 
     // persistent state
     b8 is_hot;
