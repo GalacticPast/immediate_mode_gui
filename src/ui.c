@@ -3,18 +3,20 @@
 static ui_state *state;
 
 void     __ui_calculate_element_sizes();
-vector3d __ui_calculate_position(s32 index);
+void     __ui_calculate_position(s32 index);
+void     __ui_resize_n_reposition_elements(s32 index);
 b8       __ui_check_mouse_hover(vector3d position, rectangle dimensions);
 ui_elem *__ui_get_prev_sibling(s32 parent_index);
-ui_elem *__ui_create_box(const char         *label,
-                         ui_elem_type        type,
-                         ui_elem_size_type   size_type,
-                         ui_elem_action_type action_type,
-                         ui_axis_type        axis_type,
-                         ui_axis_type        axis_child_type,
-                         ui_render_type      render_command_type,
-                         vector2d            position,
-                         rectangle           dimensions);
+ui_elem *__ui_create_box(const char                    *label,
+                         ui_elem_type                   type,
+                         ui_elem_size_type              size_type,
+                         ui_elem_children_position_type children_pos_type,
+                         ui_elem_action_type            action_type,
+                         ui_axis_type                   axis_type,
+                         ui_axis_type                   axis_child_type,
+                         ui_render_type                 render_command_type,
+                         vector2d                       position,
+                         rectangle                      dimensions);
 
 db_return_code ui_update_mouse(vector2d mouse_pos, ui_mouse_button_state mouse_button_state)
 {
@@ -95,6 +97,7 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
     ui_elem *elem = __ui_create_box(str,
                                     TYPE_WINDOW,
                                     size_type,
+                                    TYPE_POS_NONE, //@note: for now
                                     action_type,
                                     TYPE_AXIS_NONE,
                                     TYPE_AXIS_COLUMN,
@@ -107,6 +110,7 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
         title,
         TYPE_TREE,
         TYPE_SIZE_BASED_ON_PARENT,
+        TYPE_POS_PLACE_CHILDREN_AT_CENTER, // for the text
         TYPE_ACTION_ANCHORED_TO_PARENT | TYPE_ACTION_DRAGGABLE,
         TYPE_AXIS_BASED_ON_PARENT,
         TYPE_AXIS_COLUMN,
@@ -121,11 +125,12 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
 
 b8 __ui_window_end(void)
 {
-    ui_row()
+    ui_row(0)
     {
         ui_elem *box = __ui_create_box("",
                                        TYPE_BUTTON,
                                        TYPE_SIZE_FIXED,
+                                       TYPE_POS_NONE,
                                        TYPE_ACTION_PRESSABLE | TYPE_ACTION_DRAGGABLE,
                                        TYPE_AXIS_BASED_ON_PARENT,
                                        TYPE_AXIS_NONE,
@@ -141,7 +146,8 @@ b8 ui_button(const char *label)
 {
     ui_elem *elem = __ui_create_box(label,
                                     TYPE_BUTTON,
-                                    TYPE_SIZE_BASED_ON_TEXT,
+                                    TYPE_SIZE_BASED_ON_TEXT | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
+                                    TYPE_POS_PLACE_CHILDREN_AT_CENTER,
                                     TYPE_ACTION_PRESSABLE,
                                     TYPE_AXIS_BASED_ON_PARENT,
                                     TYPE_AXIS_NONE,
@@ -156,6 +162,7 @@ b8 ui_label(const char *label)
     ui_elem *elem = __ui_create_box(label,
                                     TYPE_LABEL,
                                     TYPE_SIZE_BASED_ON_TEXT,
+                                    TYPE_POS_PLACE_CHILDREN_AT_CENTER,
                                     TYPE_ACTION_PRESSABLE,
                                     TYPE_AXIS_BASED_ON_PARENT,
                                     TYPE_AXIS_NONE,
@@ -168,11 +175,12 @@ b8 ui_label(const char *label)
 void ui_checkbox(const char *label, b8 *boolean)
 {
     static rectangle min_checkbox_dimen = (rectangle){20, 20};
-    ui_row()
+    ui_row(0)
     {
         ui_elem *checkbox = __ui_create_box(label,
                                             TYPE_CHECKBOX,
                                             TYPE_SIZE_FIXED,
+                                            TYPE_POS_NONE,
                                             TYPE_ACTION_PRESSABLE,
                                             TYPE_AXIS_BASED_ON_PARENT,
                                             TYPE_AXIS_NONE,
@@ -183,6 +191,7 @@ void ui_checkbox(const char *label, b8 *boolean)
         ui_elem *checkbox_label = __ui_create_box(label,
                                                   TYPE_LABEL,
                                                   TYPE_SIZE_BASED_ON_TEXT,
+                                                  TYPE_POS_PLACE_CHILDREN_AT_CENTER,
                                                   TYPE_ACTION_NONE,
                                                   TYPE_AXIS_BASED_ON_PARENT,
                                                   TYPE_AXIS_NONE,
@@ -202,11 +211,12 @@ void ui_checkbox(const char *label, b8 *boolean)
 void ui_radio_button(const char *label, s32 *choice, s32 id)
 {
     ASSERT(choice != NULL);
-    ui_row()
+    ui_row(0)
     {
         ui_elem *circle = __ui_create_box(label,
                                           TYPE_RADIO_BUTTON,
                                           TYPE_SIZE_FIXED,
+                                          TYPE_POS_NONE,
                                           TYPE_ACTION_PRESSABLE,
                                           TYPE_AXIS_BASED_ON_PARENT,
                                           TYPE_AXIS_NONE,
@@ -225,6 +235,7 @@ void ui_radio_button(const char *label, s32 *choice, s32 id)
         ui_elem *text = __ui_create_box(label,
                                         TYPE_LABEL,
                                         TYPE_SIZE_BASED_ON_TEXT,
+                                        TYPE_POS_PLACE_CHILDREN_AT_CENTER,
                                         TYPE_ACTION_NONE,
                                         TYPE_AXIS_BASED_ON_PARENT,
                                         TYPE_AXIS_NONE,
@@ -236,11 +247,12 @@ void ui_radio_button(const char *label, s32 *choice, s32 id)
 
 void __ui_slider(const char *label, ui_slider_desc *desc)
 {
-    ui_row()
+    ui_row(0)
     {
         ui_elem *text = __ui_create_box(label,
                                         TYPE_LABEL,
                                         TYPE_SIZE_BASED_ON_TEXT,
+                                        TYPE_POS_PLACE_CHILDREN_AT_CENTER,
                                         TYPE_ACTION_NONE,
                                         TYPE_AXIS_BASED_ON_PARENT,
                                         TYPE_AXIS_NONE,
@@ -254,7 +266,8 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             db_string_append(first_label, "##1");
             ui_elem *first_slider     = __ui_create_box(first_label,
                                                         TYPE_SLIDER,
-                                                        TYPE_SIZE_FIXED,
+                                                        TYPE_SIZE_MIN_DIMENSIONS | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
+                                                        TYPE_POS_PLACE_CHILDREN_AT_CENTER,
                                                         TYPE_ACTION_DRAGGABLE,
                                                         TYPE_AXIS_BASED_ON_PARENT,
                                                         TYPE_AXIS_NONE,
@@ -275,7 +288,8 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             db_string_append(second_label, "##2");
             ui_elem *second_slider     = __ui_create_box(second_label,
                                                          TYPE_SLIDER,
-                                                         TYPE_SIZE_FIXED,
+                                                         TYPE_SIZE_MIN_DIMENSIONS | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
+                                                         TYPE_POS_PLACE_CHILDREN_AT_CENTER,
                                                          TYPE_ACTION_DRAGGABLE,
                                                          TYPE_AXIS_BASED_ON_PARENT,
                                                          TYPE_AXIS_NONE,
@@ -295,7 +309,8 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             db_string_append(third_label, "##3");
             ui_elem *third_slider     = __ui_create_box(third_label,
                                                         TYPE_SLIDER,
-                                                        TYPE_SIZE_FIXED,
+                                                        TYPE_SIZE_MIN_DIMENSIONS | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
+                                                        TYPE_POS_PLACE_CHILDREN_AT_CENTER,
                                                         TYPE_ACTION_DRAGGABLE,
                                                         TYPE_AXIS_BASED_ON_PARENT,
                                                         TYPE_AXIS_NONE,
@@ -317,7 +332,8 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             db_string_append(fourth_label, "##4");
             ui_elem *fourth_slider     = __ui_create_box(fourth_label,
                                                          TYPE_SLIDER,
-                                                         TYPE_SIZE_FIXED,
+                                                         TYPE_SIZE_MIN_DIMENSIONS | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
+                                                         TYPE_POS_PLACE_CHILDREN_AT_CENTER,
                                                          TYPE_ACTION_DRAGGABLE,
                                                          TYPE_AXIS_BASED_ON_PARENT,
                                                          TYPE_AXIS_NONE,
@@ -335,16 +351,26 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
     }
 }
 
-b8 __ui_row_begin(void)
+b8 __ui_row_begin(ui_layout_desc *desc)
 {
-    __ui_create_box("",
-                    TYPE_LAYOUT_NODE,
-                    TYPE_SIZE_BASED_ON_CHILD,
-                    TYPE_ACTION_NONE,
-                    TYPE_AXIS_BASED_ON_PARENT,
-                    TYPE_AXIS_ROW,
-                    TYPE_RENDER_NONE,
-                    (vector2d){0}, (rectangle){0});
+    ui_layout_desc l_desc = {.children_position_type = TYPE_POS_NONE,
+                             .padding                = {5, 5}};
+    if (desc)
+    {
+        l_desc.children_position_type = desc->children_position_type;
+        l_desc.padding                = desc->padding;
+    }
+    ui_elem *row_box = __ui_create_box("",
+                                       TYPE_LAYOUT_NODE,
+                                       TYPE_SIZE_BASED_ON_CHILD,
+                                       l_desc.children_position_type,
+                                       TYPE_ACTION_NONE,
+                                       TYPE_AXIS_BASED_ON_PARENT,
+                                       TYPE_AXIS_ROW,
+                                       TYPE_RENDER_NONE,
+                                       (vector2d){0}, (rectangle){0});
+
+    row_box->padding = l_desc.padding;
 
     db_stack_push(state->curr_axis, TYPE_AXIS_ROW);
     return true; // macro hack
@@ -357,18 +383,27 @@ b8 __ui_row_end(void)
     return true; // macro hack
 }
 
-b8 __ui_column_begin(void)
+b8 __ui_column_begin(ui_layout_desc *desc)
 {
-    __ui_create_box("",
-                    TYPE_LAYOUT_NODE,
-                    TYPE_SIZE_BASED_ON_CHILD,
-                    TYPE_ACTION_NONE,
-                    TYPE_AXIS_BASED_ON_PARENT,
-                    TYPE_AXIS_COLUMN,
-                    TYPE_RENDER_NONE,
-                    (vector2d){0},
-                    (rectangle){0});
+    ui_layout_desc l_desc = {.children_position_type = TYPE_POS_NONE,
+                             .padding                = {5, 5}};
+    if (desc)
+    {
+        l_desc.children_position_type = desc->children_position_type;
+        l_desc.padding                = desc->padding;
+    }
+    ui_elem *c_box = __ui_create_box("",
+                                     TYPE_LAYOUT_NODE,
+                                     TYPE_SIZE_BASED_ON_CHILD,
+                                     l_desc.children_position_type,
+                                     TYPE_ACTION_NONE,
+                                     TYPE_AXIS_BASED_ON_PARENT,
+                                     TYPE_AXIS_COLUMN,
+                                     TYPE_RENDER_NONE,
+                                     (vector2d){0},
+                                     (rectangle){0});
 
+    c_box->padding = l_desc.padding;
     db_stack_push(state->curr_axis, TYPE_AXIS_COLUMN);
     return true; // macro hack
 }
@@ -441,6 +476,8 @@ db_array(ui_render_element) ui_get_render_commands()
     __ui_sort_window_z_indexes();
 
     __ui_calculate_position(1); // because 0 is the null node
+
+    __ui_resize_n_reposition_elements(1);
 
     ui_elem *window = NULL;
     s32      i      = 0;
@@ -626,12 +663,33 @@ db_array(ui_render_element) ui_get_render_commands()
 }
 
 // private implementation
+void __ui_resize_n_reposition_elements(s32 index)
+{
 
-vector3d __ui_calculate_position(s32 index)
+    for (ui_elem *window = db_array_get_index_ptr(state->elements, index);
+         window->index != 0;
+         window = db_array_get_index_ptr(state->elements, window->next_sibling_index))
+    {
+        ASSERT(window->type & TYPE_WINDOW);
+
+        s32 w_child_count = window->child_count;
+
+        for (ui_elem *l_node = db_array_get_index_ptr(state->elements, window->first_child_index);
+             w_child_count != 0 && l_node->index != 0;
+             w_child_count--, l_node = db_array_get_index_ptr(state->elements, l_node->next_sibling_index))
+        {
+            b8                children_have_flex_property = false;
+            db_array(ui_elem) elements                    = NULL;
+            db_array_init_arena(elements, &state->arena);
+        }
+    }
+}
+
+void __ui_calculate_position(s32 index)
 {
     if (index == 0)
     {
-        return (vector3d){0};
+        return;
     }
 
     static u32 padding_x = 2;
@@ -674,15 +732,33 @@ vector3d __ui_calculate_position(s32 index)
 
         if (node->render_type & TYPE_RENDER_TEXT)
         {
-            //@fix: make this dynamic
-            // make this more robust
-            node->text_position.x = node->position.x + 3;
-            node->text_position.y = node->position.y + 3;
+            rectangle *n_dimen    = &node->dimensions;
+            vector3d  *n_pos      = &node->position;
+            rectangle *text_dimen = &node->text_dimensions;
+            vector2d   center     = {(n_dimen->width * 0.5) + n_pos->x,
+                                     (n_dimen->height * 0.5) + n_pos->y};
+            switch (node->children_pos_type)
+            {
+                case TYPE_POS_PLACE_CHILDREN_AT_CENTER:
+                    node->text_position.x = center.x - (text_dimen->width * 0.5);
+                    node->text_position.y = center.y - (text_dimen->height * 0.5);
+                    break;
+                case TYPE_POS_PLACE_CHILDREN_AT_END:
+                {
+                }
+                break;
+                case TYPE_POS_PLACE_CHILDREN_AT_START:
+                {
+                }
+                break;
+                default:
+                    break;
+            }
         }
 
         __ui_calculate_position(node->first_child_index);
     }
-    return cursor;
+    return;
 }
 
 void __ui_calculate_element_sizes()
@@ -812,15 +888,16 @@ b8 array_elem_compare(ui_elem *find, ui_elem *with)
     return find->id == with->id;
 }
 
-ui_elem *__ui_create_box(const char         *label,
-                         ui_elem_type        type,
-                         ui_elem_size_type   size_type,
-                         ui_elem_action_type action_type,
-                         ui_axis_type        axis_type,
-                         ui_axis_type        axis_child_type,
-                         ui_render_type      render_command_type,
-                         vector2d            position,
-                         rectangle           dimensions)
+ui_elem *__ui_create_box(const char                    *label,
+                         ui_elem_type                   type,
+                         ui_elem_size_type              size_type,
+                         ui_elem_children_position_type children_pos_type,
+                         ui_elem_action_type            action_type,
+                         ui_axis_type                   axis_type,
+                         ui_axis_type                   axis_child_type,
+                         ui_render_type                 render_command_type,
+                         vector2d                       position,
+                         rectangle                      dimensions)
 {
     ui_elem box     = {};
     // see if there is a parent for this
@@ -848,11 +925,13 @@ ui_elem *__ui_create_box(const char         *label,
 
     ASSERT(db_string_length(box.label) == (s64)strlen(label));
     // it doesnt matter if the parent.id is 0 because 0 is the sentinel node
-    box.type        = type;
-    box.action_type = action_type;
-    box.size_type   = size_type;
-    box.index       = db_array_get_count(state->elements);
-    box.position    = (vector3d){position.x, position.y, 0};
+    box.type              = type;
+    box.action_type       = action_type;
+    box.size_type         = size_type;
+    // @fix: check if they are incompatible
+    box.children_pos_type = children_pos_type;
+    box.index             = db_array_get_count(state->elements);
+    box.position          = (vector3d){position.x, position.y, 0};
     if (prev)
     {
         box.position = prev->position;
@@ -880,7 +959,10 @@ ui_elem *__ui_create_box(const char         *label,
         box.axis_type = parent->axis_child_type;
         ASSERT(!(parent->axis_child_type & TYPE_AXIS_NONE));
     }
-
+    if (render_command_type & TYPE_RENDER_TEXT)
+    {
+        box.text_dimensions = state->measure_text_size(box.label, state->font_size);
+    }
     if (!(type & TYPE_LAYOUT_NODE) && !(type & TYPE_WINDOW))
     {
         box.text_color       = (color){255, 255, 255, 255};

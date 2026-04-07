@@ -45,14 +45,42 @@ typedef enum
 
 typedef enum
 {
-    TYPE_SIZE_NONE                  = bit0,
-    TYPE_SIZE_BASED_ON_CHILD        = bit1,
-    TYPE_SIZE_BASED_ON_PARENT       = bit2,
-    TYPE_SIZE_FIXED                 = bit3,
-    TYPE_SIZE_BASED_ON_TEXT         = bit4,
-    // incompatible with SIZE_FIXED, SIZE_BASED_ON_TEXT,
-    TYPE_SIZE_EQUAL_RATIO_TO_PARENT = bit5,
+    TYPE_SIZE_NONE            = bit0,
+    TYPE_SIZE_BASED_ON_CHILD  = bit1,
+    TYPE_SIZE_BASED_ON_PARENT = bit2,
+    TYPE_SIZE_FIXED           = bit3,
+    TYPE_SIZE_MIN_DIMENSIONS  = bit3,
+    TYPE_SIZE_BASED_ON_TEXT   = bit5,
+
+    // can be 0 1 2 3
+    // grow and shrink can be used simultaneously
+    // if specified shink/grow then you have to provide the basis
+    // otherwise it will default to 0
+    TYPE_SIZE_FLEX_GROW   = bit6,
+    TYPE_SIZE_FLEX_SHRINK = bit7,
 } ui_elem_size_type;
+
+typedef enum
+{
+    TYPE_POS_NONE = bit0, // this is also saying just follow the parent position rules
+
+    TYPE_POS_PLACE_CHILDREN_AT_END    = bit1,
+    TYPE_POS_PLACE_CHILDREN_AT_CENTER = bit2,
+    TYPE_POS_PLACE_CHILDREN_AT_START  = bit3,
+
+    // if you are familiar with css then you'll know the following:
+    // If any of the children have the property TYPE_SIZE_FLEX_GROW then
+    // the following enums will be discarded.
+    // padding + position
+    TYPE_POS_SPACE_CHILDREN_EVENLY  = bit4,
+    TYPE_POS_SPACE_CHILDREN_BETWEEN = bit5,
+    TYPE_POS_SPACE_CHILDREN_AROUND  = bit6,
+
+    // if this is set then you have to provide a padding value
+    // this is incompatible with TYPE_POS_CHILDREN_EVENLY // hmmmm is it really ?
+    TYPE_POS_CHIDREN_PADDING = bit7,
+
+} ui_elem_children_position_type; // this is mostly only for layouts
 
 typedef enum
 {
@@ -102,7 +130,8 @@ typedef struct
 
 typedef struct
 {
-    ui_elem_size_type children_size_type;
+    ui_elem_children_position_type children_position_type;
+    vector2d                       padding;
 } ui_layout_desc;
 
 typedef struct
@@ -130,17 +159,19 @@ typedef struct
     s64 child_count; // number of children
 
     // element traits
-    ui_elem_type        type;
-    ui_elem_action_type action_type;
-    ui_elem_size_type   size_type;
-    ui_axis_type        axis_type;       // which axis does this elem follow
-    ui_axis_type        axis_child_type; // which axis does this elements children follow
-                                         // this will affect how it will be laid out in the final.
-                                         //
+    ui_elem_type                   type;
+    ui_elem_action_type            action_type;
+    ui_elem_size_type              size_type;
+    ui_elem_children_position_type children_pos_type;
+    ui_axis_type                   axis_type;       // which axis does this elem follow
+    ui_axis_type                   axis_child_type; // which axis does this elements children follow
+                                                    // this will affect how it will be laid out in the final.
+                                                    //
 
     vector3d  position; // absolute position. the z val used for windows/panels sorting.
     rectangle dimensions;
     color     background_color;
+    vector2d  padding;
 
     // persistent state
     b8 is_hot;
@@ -225,17 +256,17 @@ db_return_code ui_update_mouse(vector2d mouse_pos, ui_mouse_button_state mouse_b
 // this should be called in the end. Because this will reset the ui.
 db_array(ui_render_element) ui_get_render_commands();
 
-#define ui_row() defer_loop(__ui_row_begin(), __ui_row_end())
-#define ui_column() defer_loop(__ui_column_begin(), __ui_column_end())
+#define ui_row(...) defer_loop(__ui_row_begin(&(ui_layout_desc){__VA_ARGS__}), __ui_row_end())
+#define ui_column(...) defer_loop(__ui_column_begin(&(ui_layout_desc){__VA_ARGS__}), __ui_column_end())
 
 #define ui_window(title) defer_loop(__ui_window_begin(title, &(ui_window_desc){0}), __ui_window_end())
 #define ui_window_ext(title, ...) defer_loop(__ui_window_begin(title, &(ui_window_desc){__VA_ARGS__}), __ui_window_end())
 
 b8 __ui_window_begin(const char *title, ui_window_desc *desc);
 b8 __ui_window_end(void);
-b8 __ui_row_begin(void);
+b8 __ui_row_begin(ui_layout_desc *desc);
 b8 __ui_row_end(void);
-b8 __ui_column_begin(void);
+b8 __ui_column_begin(ui_layout_desc *desc);
 b8 __ui_column_end(void);
 
 b8   ui_button(const char *label);

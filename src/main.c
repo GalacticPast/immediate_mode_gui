@@ -54,7 +54,8 @@ int main()
 
         ui_window_ext("Hello world", .position = {100, 100})
         {
-            ui_row()
+            ui_row(.children_position_type = TYPE_POS_SPACE_CHILDREN_EVENLY,
+                   .padding                = {5, 10})
             {
                 ui_label("Press me: ");
                 if (ui_button("Press"))
@@ -62,7 +63,6 @@ int main()
                     printf("Hellooo you pressed me. \n");
                 }
             }
-            ui_button("Hello ?");
             static b8 check = false;
             ui_checkbox("Checkbox", &check);
             static s32 choice = -1;
@@ -111,9 +111,7 @@ int main()
                 break;
                 case TYPE_RENDER_NONE:
                 default:
-                {
-                }
-                break;
+                    break;
             }
         }
         EndDrawing();
