@@ -38,7 +38,7 @@ typedef enum
     TYPE_SLIDER       = bit5,
     TYPE_TEXT_FIELD   = bit6,
     TYPE_SCROLL_BAR   = bit7,
-    TYPE_LAYOUT_NODE  = bit8,
+    TYPE_CONTAINER    = bit8,
     TYPE_LABEL        = bit9,
     TYPE_TREE         = bit10, //@todo: think of a better name
 } ui_elem_type;
@@ -83,12 +83,14 @@ typedef enum
 
 typedef enum
 {
-    TYPE_ACTION_NONE               = bit0,
-    TYPE_ACTION_FIXED              = bit1,
+    TYPE_ACTION_NONE               = bit0, // it will react to nothing
+    TYPE_ACTION_HOVERABLE          = bit1,
     TYPE_ACTION_DRAGGABLE          = bit2,
     TYPE_ACTION_RESIZABLE          = bit3,
     TYPE_ACTION_PRESSABLE          = bit4,
-    TYPE_ACTION_ANCHORED_TO_PARENT = bit5, // if you drag an element with this proprerty, it will also reflect on the parent
+    // meant to be used with DRAGGABLE AND RESIZABLE
+    // if you drag an element with this proprerty, it will also reflect on the parent
+    TYPE_ACTION_ANCHORED_TO_PARENT = bit4,
 } ui_elem_action_type;
 
 typedef enum
@@ -129,6 +131,8 @@ typedef struct
 
 typedef struct
 {
+    ui_elem_action_type            action_type;
+    ui_render_type                 render_command_type;
     ui_elem_children_position_type children_position_type;
     vector2d                       padding;
 } ui_layout_desc;

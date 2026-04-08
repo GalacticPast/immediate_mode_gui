@@ -10,7 +10,7 @@
 rectangle ui_measure_text(const char *text, u32 font_size)
 {
     s32 text_width = MeasureText(text, font_size);
-    return (rectangle){text_width, 12}; // change this to be dynamic
+    return (rectangle){text_width, font_size}; // change this to be dynamic
 }
 
 int main()
@@ -54,19 +54,6 @@ int main()
 
         ui_window_ext("Hello world", .position = {100, 100})
         {
-            ui_row(.children_position_type = TYPE_POS_SPACE_CHILDREN_EVENLY,
-                   .padding                = {5, 10})
-            {
-                ui_label("Press me: ");
-                if (ui_button("Press"))
-                {
-                    printf("Hellooo you pressed me. \n");
-                }
-                if (ui_button("lol"))
-                {
-                    printf("Hellooo you pressed me. \n");
-                }
-            }
             static b8 check = false;
             ui_checkbox("Checkbox", &check);
             static s32 choice = -1;
@@ -107,7 +94,7 @@ int main()
                 break;
                 case TYPE_RENDER_TEXT:
                 {
-                    DrawText(elems[i].label, position.x, position.y, 12, color);
+                    DrawText(elems[i].label, position.x, position.y, 14, color);
                 }
                 break;
                 case TYPE_RENDER_CIRCLE:
