@@ -63,6 +63,7 @@ typedef enum
 {
     TYPE_POS_NONE = bit0, // this is also saying just follow the parent position rules
 
+    // can be used for text too
     TYPE_POS_PLACE_CHILDREN_AT_END    = bit1,
     TYPE_POS_PLACE_CHILDREN_AT_CENTER = bit2,
     TYPE_POS_PLACE_CHILDREN_AT_START  = bit3,
@@ -75,22 +76,34 @@ typedef enum
     TYPE_POS_SPACE_CHILDREN_BETWEEN = bit5,
     TYPE_POS_SPACE_CHILDREN_AROUND  = bit6,
 
+    //@note: element specific position ovverrides
+    // this will only override the cross axis
+    // for example if the container was set to ROW
+    // then this will affect how the element is placed on the y axis.
+    // for column it will affect the x axis
+    TYPE_POS_PLACE_SELF_AT_START  = bit7,
+    TYPE_POS_PLACE_SELF_AT_END    = bit8,
+    TYPE_POS_PLACE_SELF_AT_CENTER = bit9,
+
     // if this is set then you have to provide a padding value
     // this is incompatible with TYPE_POS_CHILDREN_EVENLY // hmmmm is it really ?
-    TYPE_POS_CHIDREN_PADDING = bit7,
+    TYPE_POS_CHIDREN_PADDING = bit10,
 
-} ui_elem_children_position_type; // this is mostly only for layouts
+} ui_elem_pos_type; // this is mostly only for layouts
 
 typedef enum
 {
-    TYPE_ACTION_NONE               = bit0, // it will react to nothing
-    TYPE_ACTION_HOVERABLE          = bit1,
-    TYPE_ACTION_DRAGGABLE          = bit2,
-    TYPE_ACTION_RESIZABLE          = bit3,
-    TYPE_ACTION_PRESSABLE          = bit4,
+    TYPE_ACTION_NONE      = bit0, // it will react to nothing
+    TYPE_ACTION_HOVERABLE = bit1,
+    TYPE_ACTION_DRAGGABLE = bit2,
+    TYPE_ACTION_RESIZABLE = bit3,
+    TYPE_ACTION_PRESSABLE = bit4,
+
     // meant to be used with DRAGGABLE AND RESIZABLE
     // if you drag an element with this proprerty, it will also reflect on the parent
-    TYPE_ACTION_ANCHORED_TO_PARENT = bit4,
+    TYPE_ACTION_ANCHORED_TO_PARENT = bit5,
+    // if set type_action_resizable then it will reflect to parent
+    TYPE_ACTION_REFLECT_TO_PARENT  = bit6,
 } ui_elem_action_type;
 
 typedef enum
@@ -131,10 +144,10 @@ typedef struct
 
 typedef struct
 {
-    ui_elem_action_type            action_type;
-    ui_render_type                 render_command_type;
-    ui_elem_children_position_type children_position_type;
-    vector2d                       padding;
+    ui_elem_action_type action_type;
+    ui_render_type      render_command_type;
+    ui_elem_pos_type    children_position_type;
+    vector2d            padding;
 } ui_layout_desc;
 
 typedef struct
@@ -162,21 +175,22 @@ typedef struct
     s64 child_count; // number of children
 
     // element traits
-    ui_elem_type                   type;
-    ui_elem_action_type            action_type;
-    ui_elem_size_type              size_type;
-    ui_elem_children_position_type children_pos_type;
-    ui_axis_type                   axis_type;       // which axis does this elem follow
-    ui_axis_type                   axis_child_type; // which axis does this elements children follow
-                                                    // this will affect how it will be laid out in the final.
-                                                    //
+    ui_elem_type        type;
+    ui_elem_action_type action_type;
+    ui_elem_size_type   size_type;
+    ui_elem_pos_type    pos_type;
+    ui_elem_pos_type    children_pos_type;
+    ui_axis_type        axis_type;       // which axis does this elem follow
+    ui_axis_type        child_axis_type; // which axis does this elements children follow
+                                         // this will affect how it will be laid out in the final.
+                                         //
 
     vector3d  position; // absolute position. the z val used for windows/panels sorting.
     rectangle dimensions;
     color     background_color;
     vector2d  padding;
-    s32       growth_factor; // will default to 0 if set TYPE_SIZE_FLEX_GROW
-    s32       shrink_factor; // will default to 0 if set TYPE_SIZE_FLEX_GROW
+    s32       growth_factor; // will default to 1 if set TYPE_SIZE_FLEX_GROW
+    s32       shrink_factor; // will default to 1 if set TYPE_SIZE_FLEX_GROW
 
     // persistent state
     b8 is_hot;
