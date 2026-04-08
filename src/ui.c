@@ -112,7 +112,7 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
     ui_row(.children_position_type = TYPE_POS_PLACE_CHILDREN_AT_CENTER,
            .render_command_type    = TYPE_RENDER_RECTANGLE,
            .action_type            = TYPE_ACTION_HOVERABLE | TYPE_ACTION_DRAGGABLE
-                                     | TYPE_ACTION_PRESSABLE | TYPE_ACTION_ANCHORED_TO_PARENT)
+                          | TYPE_ACTION_PRESSABLE | TYPE_ACTION_ANCHORED_TO_PARENT)
     {
         ui_elem *title_box = __ui_create_box(
             title,
@@ -1129,7 +1129,14 @@ ui_elem *__ui_create_box(const char         *label,
     {
         box.position = prev->position;
     }
-    box.dimensions      = dimensions;
+    box.dimensions = dimensions;
+    // @todo: make this robust
+    if (prev && type & TYPE_WINDOW)
+    {
+        box.size_type         = TYPE_SIZE_FIXED;
+        box.dimensions.width  = db_max(dimensions.width, prev->dimensions.width);
+        box.dimensions.height = db_max(dimensions.height, prev->dimensions.height);
+    }
     box.axis_type       = axis_type;
     box.child_axis_type = axis_child_type;
     box.pos_type        = pos_type;
