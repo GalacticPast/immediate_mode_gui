@@ -85,6 +85,10 @@ int main()
             Vector2 start_pos  = (Vector2){elems[i].start_pos.x, elems[i].start_pos.y};
             Vector2 end_pos    = (Vector2){elems[i].end_pos.x, elems[i].end_pos.y};
 
+            Vector2 clip_position   = (Vector2){elems[i].clip_position.x, elems[i].clip_position.y};
+            Vector2 clip_dimensions = (Vector2){elems[i].clip_dimensions.width, elems[i].clip_dimensions.height};
+
+            BeginScissorMode(clip_position.x, clip_position.y, clip_dimensions.x, clip_dimensions.y);
             switch (elems[i].type)
             {
                 case TYPE_RENDER_RECTANGLE:
@@ -111,6 +115,7 @@ int main()
                 default:
                     break;
             }
+            EndScissorMode();
         }
         EndDrawing();
     }

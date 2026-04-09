@@ -185,7 +185,9 @@ typedef struct
                                          // this will affect how it will be laid out in the final.
                                          //
 
-    vector3d  position; // absolute position. the z val used for windows/panels sorting.
+    vector3d  position;
+    vector3d  clip_position;
+    rectangle clip_dimensions;
     rectangle dimensions;
     color     background_color;
     vector2d  padding;
@@ -224,14 +226,19 @@ typedef struct
 {
     ui_render_type type;
 
+    rectangle clip_dimensions;
     rectangle dimensions;
     vector3d  position;
+    vector3d  clip_position;
     color     color;
+
     // if its TYPE_CIRCLE
     vector3d center;
     f32      radius;
+
     // if its TYPE_TEXT
     db_string label;
+
     // if its TYPE_LINE
     vector3d start_pos;
     vector3d end_pos;
@@ -261,7 +268,7 @@ typedef struct
     db_stack(s32)               curr_parent; // index of the curr parent
     db_array(ui_elem)           elements;
     db_array(ui_elem)           prev_elem_state; // previous frame elements
-    db_array(ui_elem *)         windows;
+    db_array(ui_elem *)         windows;         // whatt
     db_array(ui_render_element) render_elements; // resets every frame
 
     // @warn: Experimental

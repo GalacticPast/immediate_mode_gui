@@ -97,6 +97,7 @@ typedef s8 b8;
 
 // hmmmm we need a floating point max too ?
 #define db_max(n, m) (s64) n >= (s64)m ? (s64)n : (s64)m
+#define db_min(n, m) (s64) n <= (s64)m ? (s64)n : (s64)m
 
 #define KB(n) ((s32)n * 1024)
 #define MB(n) ((s32)n * 1024 * 1024)
