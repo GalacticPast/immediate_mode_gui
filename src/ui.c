@@ -558,18 +558,20 @@ db_array(ui_render_element) ui_get_render_commands()
             {
                 ui_render_element border = {};
 
-                border.dimensions = (rectangle){node->dimensions.width + 4, node->dimensions.height + 4};
-                border.position   = (vector3d){node->position.x - 2, node->position.y - 2, node->position.z};
-                border.type       = TYPE_RENDER_RECTANGLE;
-                border.color      = (color){0, 0, 0, 255};
+                border.dimensions      = (rectangle){node->dimensions.width + 4, node->dimensions.height + 4};
+                border.position        = (vector3d){node->position.x - 2, node->position.y - 2, node->position.z};
+                border.type            = TYPE_RENDER_RECTANGLE;
+                border.clip_dimensions = node->clip_dimensions;
+                border.clip_position   = node->clip_position;
+                border.color           = (color){0, 0, 0, 255};
                 db_array_append(state->render_elements, border);
 
                 ui_render_element elem = {};
 
+                elem.position        = node->position;
                 elem.dimensions      = node->dimensions;
                 elem.clip_dimensions = node->clip_dimensions;
                 elem.clip_position   = node->clip_position;
-                elem.position        = node->position;
                 elem.type            = TYPE_RENDER_RECTANGLE;
                 elem.color           = node->background_color;
                 db_array_append(state->render_elements, elem);
@@ -784,6 +786,7 @@ void __ui_set_clip_regions()
              w_child_count != 0 && l_node->index != 0;
              w_child_count--, l_node = db_array_get_index_ptr(state->elements, l_node->next_sibling_index))
         {
+            __ui_check_n_set_clip(window, l_node);
             for (ui_elem *elem = db_array_get_index_ptr(state->elements, l_node->first_child_index);
                  l_node->child_count != 0 && elem->index != 0;
                  elem = db_array_get_index_ptr(state->elements, elem->next_sibling_index))
