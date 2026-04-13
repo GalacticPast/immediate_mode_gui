@@ -63,31 +63,33 @@ typedef enum
 {
     TYPE_POS_NONE = bit0, // this is also saying just follow the parent position rules
 
+    TYPE_POS_FIXED = bit1, // the position is passed in when calling the function
+
     // can be used for text too
-    TYPE_POS_PLACE_CHILDREN_AT_END    = bit1,
-    TYPE_POS_PLACE_CHILDREN_AT_CENTER = bit2,
-    TYPE_POS_PLACE_CHILDREN_AT_START  = bit3,
+    TYPE_POS_PLACE_CHILDREN_AT_END    = bit2,
+    TYPE_POS_PLACE_CHILDREN_AT_CENTER = bit3,
+    TYPE_POS_PLACE_CHILDREN_AT_START  = bit4,
 
     // if you are familiar with css then you'll know the following:
     // If any of the children have the property TYPE_SIZE_FLEX_GROW then
     // the following enums will be discarded.
     // padding + position
-    TYPE_POS_SPACE_CHILDREN_EVENLY  = bit4,
-    TYPE_POS_SPACE_CHILDREN_BETWEEN = bit5,
-    TYPE_POS_SPACE_CHILDREN_AROUND  = bit6,
+    TYPE_POS_SPACE_CHILDREN_EVENLY  = bit5,
+    TYPE_POS_SPACE_CHILDREN_BETWEEN = bit6,
+    TYPE_POS_SPACE_CHILDREN_AROUND  = bit7,
 
     //@note: element specific position ovverrides
     // this will only override the cross axis
     // for example if the container was set to ROW
     // then this will affect how the element is placed on the y axis.
     // for column it will affect the x axis
-    TYPE_POS_PLACE_SELF_AT_START  = bit7,
-    TYPE_POS_PLACE_SELF_AT_END    = bit8,
-    TYPE_POS_PLACE_SELF_AT_CENTER = bit9,
+    TYPE_POS_PLACE_SELF_AT_START  = bit8,
+    TYPE_POS_PLACE_SELF_AT_END    = bit9,
+    TYPE_POS_PLACE_SELF_AT_CENTER = bit10,
 
     // if this is set then you have to provide a padding value
     // this is incompatible with TYPE_POS_CHILDREN_EVENLY // hmmmm is it really ?
-    TYPE_POS_CHIDREN_PADDING = bit10,
+    TYPE_POS_CHIDREN_PADDING = bit11,
 
 } ui_elem_pos_type; // this is mostly only for layouts
 
@@ -245,6 +247,14 @@ typedef struct
 
 } ui_render_element; // @note: better name?
 
+// arrays
+db_array_decl(ui_elements, ui_elem);
+db_array_decl(ui_elem_ptr, ui_elem *);
+db_array_decl(render_elements, ui_render_element);
+
+// stacks
+db_stack_decl(s32, s32);
+
 typedef struct
 {
     ui_mouse_button_state prev_mouse_btn_state;
@@ -252,8 +262,9 @@ typedef struct
     ui_mouse_button_state mouse_btn_state;
     vector2d              mouse_pos;
 
-    db_arena arena; // this is just used once actually ?
-                    //  we call this and ask for mem only when we do ui_init
+    db_arena ui_permanent_arena;
+    db_arena ui_frame_arena;
+    db_arena ui_string_chunk_arena;
 
     u32 font_size;
     f32 scale; // @todo: better scaling logic. Actually I havent even implemented this
@@ -262,25 +273,29 @@ typedef struct
     u64 hot_elem_id;
     u64 active_elem_id; // to check if the current active element
 
-    rectangle (*measure_text_size)(const char *text, u32 font_size);
+    db_array_ui_elements ui_elements;
+    db_array_ui_elements previous_ui_elements;
 
-    db_stack(ui_axis_type)      curr_axis;   // this is for the elements which are inside the row/column scope{}. I dont think we use this
-    db_stack(s32)               curr_parent; // index of the curr parent
-    db_array(ui_elem)           elements;
-    db_array(ui_elem)           prev_elem_state; // previous frame elements
-    db_array(ui_elem *)         windows;         // whatt
-    db_array(ui_render_element) render_elements; // resets every frame
+    //@warn: do we even use this?
+    db_stack_s32 curr_axis; // this is for the elements which are inside the row/column scope{}. I dont think we use this
+
+    db_stack_s32         curr_parent_index; // index of the curr parent
+    db_array_ui_elem_ptr windows;           // whatt
+
+    db_array_render_elements render_elements;
+
+    rectangle (*measure_text_size)(const char *text, u32 font_size);
 
     // @warn: Experimental
     s32      window_counter;
     ui_elem *curr_top_parent; // the parent which is at the top of other windows
 } ui_state;
 
-db_return_code ui_init(rectangle (*measure_text_size)(const char *text, u32 font_size));
+db_return_code ui_init(u32 *required_size, void *memory, rectangle (*measure_text_size)(const char *text, u32 font_size));
 db_return_code ui_update_mouse(vector2d mouse_pos, ui_mouse_button_state mouse_button_state);
 
 // this should be called in the end. Because this will reset the ui.
-db_array(ui_render_element) ui_get_render_commands();
+db_array_render_elements ui_get_render_commands();
 
 #define ui_row(...) defer_loop(__ui_row_begin(&(ui_layout_desc){__VA_ARGS__}), __ui_row_end())
 #define ui_column(...) defer_loop(__ui_column_begin(&(ui_layout_desc){__VA_ARGS__}), __ui_column_end())

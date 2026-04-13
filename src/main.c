@@ -19,7 +19,13 @@ int main()
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Immediate mode gui");
     SetTargetFPS(60); // Set target FPS (maximum)
 
-    ui_init(&ui_measure_text);
+    db_arena main_arena = db_arena_init();
+    u32      size       = 0;
+
+    ui_init(&size, 0, &ui_measure_text);
+    void *ui_mem = db_arena_alloc(&main_arena, size);
+    ui_init(&size, ui_mem, &ui_measure_text);
+
     Vector2               mouse_pos   = {};
     ui_mouse_button_state mouse_state = 0;
 
@@ -74,49 +80,49 @@ int main()
                           .fourth_val = &a);
         }
 
-        db_array(ui_render_element) elems = ui_get_render_commands();
-
-        for (s32 i = 0; i < db_array_get_count(elems); i++)
-        {
-            Vector2 position   = (Vector2){elems[i].position.x, elems[i].position.y};
-            Vector2 dimensions = (Vector2){elems[i].dimensions.width, elems[i].dimensions.height};
-            Color   color      = (Color){elems[i].color.r, elems[i].color.g, elems[i].color.b, elems[i].color.a};
-            Vector2 center     = (Vector2){elems[i].center.x, elems[i].center.y};
-            Vector2 start_pos  = (Vector2){elems[i].start_pos.x, elems[i].start_pos.y};
-            Vector2 end_pos    = (Vector2){elems[i].end_pos.x, elems[i].end_pos.y};
-
-            Vector2 clip_position   = (Vector2){elems[i].clip_position.x, elems[i].clip_position.y};
-            Vector2 clip_dimensions = (Vector2){elems[i].clip_dimensions.width, elems[i].clip_dimensions.height};
-
-            BeginScissorMode(clip_position.x, clip_position.y, clip_dimensions.x, clip_dimensions.y);
-            switch (elems[i].type)
-            {
-                case TYPE_RENDER_RECTANGLE:
-                {
-                    DrawRectangleV((Vector2)position, dimensions, color);
-                }
-                break;
-                case TYPE_RENDER_TEXT:
-                {
-                    DrawText(elems[i].label, position.x, position.y, 14, color);
-                }
-                break;
-                case TYPE_RENDER_CIRCLE:
-                {
-                    DrawCircleV(center, elems[i].radius, color);
-                }
-                break;
-                case TYPE_RENDER_LINE:
-                {
-                    DrawLineV(start_pos, end_pos, color);
-                }
-                break;
-                case TYPE_RENDER_NONE:
-                default:
-                    break;
-            }
-            EndScissorMode();
-        }
+        // db_array(ui_render_element) elems = ui_get_render_commands();
+        //
+        // for (s32 i = 0; i < db_array_get_count(elems); i++)
+        // {
+        //     Vector2 position   = (Vector2){elems[i].position.x, elems[i].position.y};
+        //     Vector2 dimensions = (Vector2){elems[i].dimensions.width, elems[i].dimensions.height};
+        //     Color   color      = (Color){elems[i].color.r, elems[i].color.g, elems[i].color.b, elems[i].color.a};
+        //     Vector2 center     = (Vector2){elems[i].center.x, elems[i].center.y};
+        //     Vector2 start_pos  = (Vector2){elems[i].start_pos.x, elems[i].start_pos.y};
+        //     Vector2 end_pos    = (Vector2){elems[i].end_pos.x, elems[i].end_pos.y};
+        //
+        //     Vector2 clip_position   = (Vector2){elems[i].clip_position.x, elems[i].clip_position.y};
+        //     Vector2 clip_dimensions = (Vector2){elems[i].clip_dimensions.width, elems[i].clip_dimensions.height};
+        //
+        //     BeginScissorMode(clip_position.x, clip_position.y, clip_dimensions.x, clip_dimensions.y);
+        //     switch (elems[i].type)
+        //     {
+        //         case TYPE_RENDER_RECTANGLE:
+        //         {
+        //             DrawRectangleV((Vector2)position, dimensions, color);
+        //         }
+        //         break;
+        //         case TYPE_RENDER_TEXT:
+        //         {
+        //             DrawText(elems[i].label, position.x, position.y, 14, color);
+        //         }
+        //         break;
+        //         case TYPE_RENDER_CIRCLE:
+        //         {
+        //             DrawCircleV(center, elems[i].radius, color);
+        //         }
+        //         break;
+        //         case TYPE_RENDER_LINE:
+        //         {
+        //             DrawLineV(start_pos, end_pos, color);
+        //         }
+        //         break;
+        //         case TYPE_RENDER_NONE:
+        //         default:
+        //             break;
+        // }
+        // EndScissorMode();
+        //
         EndDrawing();
     }
     CloseWindow();
