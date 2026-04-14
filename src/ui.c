@@ -131,7 +131,7 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
     ui_row(.children_position_type = TYPE_POS_PLACE_CHILDREN_AT_CENTER,
            .render_command_type    = TYPE_RENDER_RECTANGLE,
            .action_type            = TYPE_ACTION_HOVERABLE | TYPE_ACTION_DRAGGABLE
-                                     | TYPE_ACTION_PRESSABLE | TYPE_ACTION_ANCHORED_TO_PARENT)
+                          | TYPE_ACTION_PRESSABLE | TYPE_ACTION_ANCHORED_TO_PARENT)
     {
         db_string title_str = db_string_make(&state->ui_frame_arena, title);
         ui_elem  *title_box = __ui_create_box(
@@ -321,7 +321,7 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
         if (desc->first_val)
         {
             db_string first_label = db_string_make(&state->ui_frame_arena, label);
-            db_string_append(first_label, "##1");
+            db_string_append(&first_label, "##1");
             ui_elem *first_slider = __ui_create_box(first_label,
                                                     TYPE_SLIDER,
                                                     TYPE_SIZE_BASED_ON_TEXT | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
@@ -345,7 +345,7 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
         if (desc->second_val)
         {
             db_string second_label = db_string_make(&state->ui_frame_arena, label);
-            db_string_append(second_label, "##2");
+            db_string_append(&second_label, "##2");
             ui_elem *second_slider = __ui_create_box(second_label,
                                                      TYPE_SLIDER,
                                                      TYPE_SIZE_BASED_ON_TEXT | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
@@ -368,7 +368,7 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
         if (desc->third_val)
         {
             db_string third_label = db_string_make(&state->ui_frame_arena, label);
-            db_string_append(third_label, "##3");
+            db_string_append(&third_label, "##3");
             ui_elem *third_slider = __ui_create_box(third_label,
                                                     TYPE_SLIDER,
                                                     TYPE_SIZE_BASED_ON_TEXT | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
@@ -392,7 +392,7 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
         {
             // try
             db_string fourth_label = db_string_make(&state->ui_frame_arena, label);
-            db_string_append(fourth_label, "##4");
+            db_string_append(&fourth_label, "##4");
             ui_elem *fourth_slider = __ui_create_box(fourth_label,
                                                      TYPE_SLIDER,
                                                      TYPE_SIZE_BASED_ON_TEXT | TYPE_SIZE_FLEX_GROW | TYPE_SIZE_FLEX_SHRINK,
@@ -1164,7 +1164,7 @@ void __ui_calculate_element_sizes()
 
         if (elem->size_type & TYPE_SIZE_BASED_ON_TEXT)
         {
-            elem->text_dimensions = state->measure_text_size(db_string_get_cstr(&state->ui_frame_arena, elem->label), state->font_size);
+            elem->text_dimensions = state->measure_text_size(db_string_get_cstr(&state->ui_frame_arena, &elem->label), state->font_size);
 
             elem->dimensions.width  = elem->text_dimensions.width + 2 * padding_x;
             elem->dimensions.height = elem->text_dimensions.height + 2 * padding_y;
@@ -1303,7 +1303,7 @@ ui_elem *__ui_create_box(db_string           str,
     // this is to prevent write access on the sentinel node
     parent->child_count++;
 
-    u64 id = db_murmur64A_seed(db_string_get_cstr(&state->ui_frame_arena, str), str.length, parent == NULL ? DB_HASH_SEED : parent->id);
+    u64 id = db_murmur64A_seed(db_string_get_cstr(&state->ui_frame_arena, &str), str.length, parent == NULL ? DB_HASH_SEED : parent->id);
     box.id = id;
 
     // this still deosnt take care of the fact if in the same layout row / column
@@ -1317,7 +1317,7 @@ ui_elem *__ui_create_box(db_string           str,
     }
     else
     {
-        box.label = db_string_make(&state->ui_string_chunk_arena, db_string_get_cstr(&state->ui_frame_arena, str));
+        box.label = db_string_make(&state->ui_string_chunk_arena, db_string_get_cstr(&state->ui_frame_arena, &str));
     }
 
     // it doesnt matter if the parent.id is 0 because 0 is the sentinel node
