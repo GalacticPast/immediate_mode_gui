@@ -673,10 +673,14 @@ char const *db_char_last_occurence(char const *str, char c);
 
 typedef struct db_string
 {
+    s64       capacity;
     s64       length;
     db_arena *arena;
     char     *data; // this is actually a linked list
 } db_string;
+
+// this is for the initial capacity for strings whose arenas are TYPE_ARENA_LINEAR
+#define DB_STRING_LINEAR_SIZE 512
 
 char *db_string_get_first_occurence(const char *str, const char *sub);
 void  db_string_make_reserve(db_string str, s64 capacity);
@@ -1200,12 +1204,7 @@ db_return_code __db_array_init(db_arena *shared_arena, db_array_skeleton *array,
 
     // maybe a bit wasteful but we've already commited this much isnt it?
     size_t array_size = DB_ARRAY_DEFAULT_ALLOCATION_BUCKETS * type_size;
-    if (array_size >= DB_PAGE_SIZE)
-    {
-        printf("The array you are initializing is already bigger than the page size on your os. You might consider "
-               "using the big array for this one cheif.\n");
-    }
-    array_size = DB_ALIGN_TO_MULTIPLE(array_size, DB_DEFAULT_MEMORY_ALIGNEMENT);
+    array_size        = DB_ALIGN_TO_MULTIPLE(array_size, DB_DEFAULT_MEMORY_ALIGNEMENT);
 
     void *memory = db_arena_alloc(shared_arena, array_size);
 
@@ -1503,7 +1502,8 @@ db_string db_string_make(db_arena *arena, char const *a)
     }
     else
     {
-        str.data = db_arena_alloc(arena, len);
+        str.data     = db_arena_alloc(arena, DB_STRING_LINEAR_SIZE);
+        str.capacity = DB_STRING_LINEAR_SIZE;
 
         const char *orig  = a;
         char       *start = str.data;
@@ -1527,6 +1527,8 @@ char *db_string_get_cstr(db_arena *arena, db_string const *const str)
 {
     ASSERT_WITH_MSG(arena->type == TYPE_ARENA_LINEAR, "Cannot pass a cstr with a chunked arena");
     char *cpy = NULL;
+    if (str->length == 0)
+        return "";
     if (str->arena->type == TYPE_ARENA_CHUNKED)
     {
         cpy         = db_arena_alloc(arena, str->length);
@@ -1594,9 +1596,19 @@ void db_string_clear(db_string *const str)
     // clear all the chunks
     if (str->arena->type == TYPE_ARENA_CHUNKED)
     {
+        db_arena_chunk_header *header = DB_ARENA_CHUNK_HEADER(str->data);
+        while (header->next_chunk)
+        {
+            db_arena_chunk_header *prev = header;
+            header                      = header->next_chunk;
+            db_arena_free_node(str->arena, prev);
+        }
+        str->data = NULL;
     }
     else
     {
+        memset(str->data, 0, str->length);
+        str->length = 0;
     }
 }
 
@@ -1648,6 +1660,15 @@ void db_string_append(db_string *const str, const char *other)
         {
             b++;
         }
+        if (str->length + 1 >= str->capacity)
+        {
+            char *new_data = db_arena_alloc(str->arena, DB_ARRAY_DEFAULT_RESIZE_FACTOR * str->capacity);
+            memcpy(new_data, str->data, str->length);
+            str->data = new_data;
+
+            b     = str->data;
+            start = str->data;
+        }
 
         while (*orig)
         {
@@ -1662,28 +1683,55 @@ void db_string_append(db_string *const str, const char *other)
 void db_string_append_char(db_string *const str, const char c)
 {
 
-    db_arena_chunk_header *header = (db_arena_chunk_header *)(str->data - sizeof(db_arena_chunk_header));
-    while (header->next_chunk)
+    if (str->arena->type == TYPE_ARENA_CHUNKED)
     {
-        header = (db_arena_chunk_header *)(uintptr_t)header + str->arena->chunk_size;
-    }
-    char *start = str->data;
-    char *b     = str->data;
+        db_arena_chunk_header *header = (db_arena_chunk_header *)(str->data - sizeof(db_arena_chunk_header));
+        while (header->next_chunk)
+        {
+            header = (db_arena_chunk_header *)(uintptr_t)header + str->arena->chunk_size;
+        }
+        char *start = str->data;
+        char *b     = str->data;
 
-    while (*b)
+        while (*b)
+        {
+            b++;
+        }
+
+        if ((uintptr_t)b - (uintptr_t)start == (str->arena->chunk_size - sizeof(db_arena_chunk_header) - 1))
+        {
+            db_arena_chunk_header *header = DB_ARENA_CHUNK_HEADER(start);
+            b                             = db_arena_alloc(str->arena, str->arena->chunk_size);
+            start                         = b;
+
+            header->next_chunk = (db_arena_chunk_header *)(b - sizeof(db_arena_chunk_header));
+        }
+        *b = c;
+    }
+    else
     {
+        char *start = str->data;
+        char *b     = str->data;
+
+        while (*b)
+        {
+            b++;
+        }
+        if (str->length + 1 >= str->capacity)
+        {
+            char *new_data = db_arena_alloc(str->arena, DB_ARRAY_DEFAULT_RESIZE_FACTOR * str->capacity);
+            memcpy(new_data, str->data, str->length);
+            str->data = new_data;
+
+            b     = str->data;
+            start = str->data;
+        }
+
+        *b = c;
         b++;
+        str->length++;
+        start[str->length] = '\0';
     }
-
-    if ((uintptr_t)b - (uintptr_t)start == (str->arena->chunk_size - sizeof(db_arena_chunk_header) - 1))
-    {
-        db_arena_chunk_header *header = DB_ARENA_CHUNK_HEADER(start);
-        b                             = db_arena_alloc(str->arena, str->arena->chunk_size);
-        start                         = b;
-
-        header->next_chunk = (db_arena_chunk_header *)(b - sizeof(db_arena_chunk_header));
-    }
-    *b = c;
 }
 
 // well this looks like for utf8 strings. Well Let me figure that out later
@@ -1720,7 +1768,7 @@ b8 db_strings_are_equal(db_string const *lhs, db_string const *rhs)
     char       *b       = rhs->data;
     const char *a_start = a;
     const char *b_start = b;
-
+    ASSERT(lhs->arena->type == TYPE_ARENA_CHUNKED && rhs->arena->type == TYPE_ARENA_CHUNKED);
     while (*a && *b)
     {
         // -1 because the length that we can write to is arena->chunk_size - 1. Just like in array length

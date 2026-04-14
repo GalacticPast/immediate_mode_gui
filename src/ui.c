@@ -131,7 +131,7 @@ b8 __ui_window_begin(const char *title, ui_window_desc *desc)
     ui_row(.children_position_type = TYPE_POS_PLACE_CHILDREN_AT_CENTER,
            .render_command_type    = TYPE_RENDER_RECTANGLE,
            .action_type            = TYPE_ACTION_HOVERABLE | TYPE_ACTION_DRAGGABLE
-                          | TYPE_ACTION_PRESSABLE | TYPE_ACTION_ANCHORED_TO_PARENT)
+                                     | TYPE_ACTION_PRESSABLE | TYPE_ACTION_ANCHORED_TO_PARENT)
     {
         db_string title_str = db_string_make(&state->ui_frame_arena, title);
         ui_elem  *title_box = __ui_create_box(
@@ -763,13 +763,26 @@ db_array_render_elements ui_get_render_commands()
     db_array_ui_elem_ptr_clear(&state->windows);
 
     db_array_ui_elements_copy(&state->previous_ui_elements, &state->ui_elements); // this will also clear the array
+#if 1
+    s32      j    = 0;
+    ui_elem *iter = NULL;
+    db_array_for_each_ptr(state->previous_ui_elements, i, iter)
+    {
+        ui_elem *a = iter;
+    }
+#endif
     db_array_ui_elements_clear(&state->ui_elements);
     db_stack_s32_clear(&state->curr_parent_index);
 
+    db_arena_reset(&state->ui_frame_arena);
+
+    state->ui_elements       = db_array_ui_elements_init(&state->ui_frame_arena);
+    state->windows           = db_array_ui_elem_ptr_init(&state->ui_frame_arena);
+    state->curr_parent_index = db_stack_s32_init(&state->ui_frame_arena);
+    state->curr_axis         = db_stack_s32_init(&state->ui_frame_arena);
+
     db_array_ui_elements_append(&state->ui_elements, (ui_elem){0});
     db_stack_s32_push(&state->curr_parent_index, 0);
-
-    db_arena_reset(&state->ui_frame_arena);
 
     state->window_counter = 0; // reset the counter
 
