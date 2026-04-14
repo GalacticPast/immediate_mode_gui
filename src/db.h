@@ -1569,21 +1569,37 @@ void db_string_clear(db_string str)
 void db_string_append(db_string str, const char *other)
 {
     s32 len = strlen(other);
-    for (s32 i = 0; i < len; i++)
+
+    db_arena_chunk_header *header = (db_arena_chunk_header *)(str.data - sizeof(db_arena_chunk_header));
+    while (header->next_chunk)
     {
-        db_array_append(str, other[i])
+        header = (db_arena_chunk_header *)(uintptr_t)header + str.arena->chunk_size;
     }
-    u64 count  = db_array_length(str);
-    // hmmm it will be zero there too but lets just me more explicit
-    str[count] = '\0';
+    const char *orig  = other;
+    char       *start = str.data;
+    char       *b     = str.data;
+
+    while (*orig)
+    {
+        // -1 because the length that we can write to is arena->chunk_size - 1. Just like in array length
+        // this is cause its 0 -based indexeing
+        if ((uintptr_t)b - (uintptr_t)start == (str.arena->chunk_size - sizeof(db_arena_chunk_header) - 1))
+        {
+            db_arena_chunk_header *header = DB_ARENA_CHUNK_HEADER(start);
+            header->next_chunk            = db_arena_alloc(str.arena, str.arena->chunk_size);
+            b                             = (char *)((uintptr_t)header->next_chunk + sizeof(db_arena_chunk_header));
+            start                         = b;
+        }
+        *b = *orig;
+        orig++;
+        b++;
+        str.length++;
+    }
 }
 
 void db_string_append_char(db_string str, const char c)
 {
-    u64 count = db_array_length(str);
-    db_array_append(str, c);
-    // hmmm it will be zero there too but lets just me more explicit
-    str[count] = '\0';
+    db_string_append(str, &c);
 }
 
 // well this looks like for utf8 strings. Well Let me figure that out later
@@ -1593,19 +1609,11 @@ void db_string_append_char(db_string str, const char c)
 //    // hmm this is gonna take a bit of time.  I have to make my own (va args) format parser
 //    return 0;
 //}
+
 void db_string_set(db_string str, char const *cstr)
 {
     db_string_clear(str);
-    // maybe this is very very bad :)
-    char *c = (char *)cstr;
-    while (*c)
-    {
-        db_array_append(str, *c);
-        c++;
-    }
-    u64 count  = db_array_length(str);
-    // hmmm it will be zero there too but lets just me more explicit
-    str[count] = '\0';
+    db_string_append(str, cstr);
 }
 // hmmmmm I dont think we need this because our arena will automatically scale based on appending
 // void db_string_make_space_for(db_string str, s64 add_len)
@@ -1618,47 +1626,105 @@ void db_string_set(db_string str, char const *cstr)
 
 b8 db_strings_are_equal(db_string const lhs, db_string const rhs)
 {
-    u64 lhs_count = db_array_length(lhs);
-    u64 rhs_count = db_array_length(rhs);
+    u64 lhs_count = lhs.length;
+    u64 rhs_count = rhs.length;
 
     if (lhs_count != rhs_count)
         return false;
 
-    for (u64 i = 0; i < lhs_count; i++)
-    {
-        if (lhs[i] != rhs[i])
-            return false;
-    }
+    char       *a       = lhs.data;
+    char       *b       = rhs.data;
+    const char *a_start = a;
+    const char *b_start = b;
 
+    while (*a && *b)
+    {
+        // -1 because the length that we can write to is arena->chunk_size - 1. Just like in array length
+        // this is cause its 0 -based indexeing
+        if (*a != *b)
+        {
+            return false;
+        }
+        a++;
+        b++;
+        if ((uintptr_t)a - (uintptr_t)a_start == (lhs.arena->chunk_size - sizeof(db_arena_chunk_header) - 1)
+            && (uintptr_t)b - (uintptr_t)b_start == (lhs.arena->chunk_size - sizeof(db_arena_chunk_header) - 1))
+        {
+            db_arena_chunk_header *a_header = DB_ARENA_CHUNK_HEADER(a);
+            a_header                        = a_header->next_chunk;
+            a                               = (char *)((uintptr_t)a_header->next_chunk + sizeof(db_arena_chunk_header));
+            a_start                         = a;
+
+            db_arena_chunk_header *b_header = DB_ARENA_CHUNK_HEADER(b);
+            b_header                        = b_header->next_chunk;
+            b                               = (char *)((uintptr_t)b_header->next_chunk + sizeof(db_arena_chunk_header));
+            b_start                         = b;
+        }
+    }
     return true;
 }
 db_string db_string_trim(db_string str, char const *cut_set)
 {
-    u64 length = db_array_length(str);
+    u64 length = str.length;
 
-    char *start_pos = &str[0];
-    char *end_pos   = &str[length - 1];
+    db_arena_chunk_header *start_header = DB_ARENA_CHUNK_HEADER(str.data);
 
-    while (start_pos <= end_pos && db_char_first_occurence(cut_set, *start_pos))
-    {
-        start_pos++;
-    }
+    char *final_start_pos = NULL;
+    char *final_end_pos   = NULL;
 
-    while (end_pos >= start_pos && db_char_first_occurence(cut_set, *end_pos))
+    while (start_header)
     {
-        end_pos--;
+        char *start_pos     = (char *)((uintptr_t)start_header + sizeof(db_arena_chunk_header));
+        char *end_pos_chunk = start_pos + (str.arena->chunk_size - (sizeof(db_arena_chunk_header) + 1));
+        while (start_pos <= end_pos_chunk && db_char_first_occurence(cut_set, *start_pos))
+        {
+            start_pos++;
+        }
+        if (start_pos != (end_pos_chunk + 1))
+        {
+            final_start_pos = start_pos;
+            break;
+        }
+        start_header = start_header->next_chunk;
     }
-    //@fix: what if the arena is a pool allocator
-    db_string        new_str    = NULL;
-    db_array_header *str_header = db_array_get_header(str);
-    db_array_init(str_header->shared_arena, new_str);
-    while (start_pos <= end_pos)
+    // go to the last node
+
+    db_arena_chunk_header *end_chunk = DB_ARENA_CHUNK_HEADER(str.data);
+    while (end_chunk->next_chunk)
     {
-        db_array_append(new_str, *start_pos);
-        start_pos++;
+        end_chunk = end_chunk->next_chunk;
     }
-    length          = db_array_length(new_str);
-    new_str[length] = '\0';
+    db_arena_chunk_header *start_chunk = DB_ARENA_CHUNK_HEADER(str.data);
+    while (end_chunk >= start_chunk)
+    {
+        char *start_pos = (char *)((uintptr_t)end_chunk + sizeof(db_arena_chunk_header));
+        char *end_pos   = start_pos + (str.arena->chunk_size - (sizeof(db_arena_chunk_header) + 1));
+        while (end_pos >= start_pos && db_char_first_occurence(cut_set, *end_pos))
+        {
+            end_pos--;
+        }
+        if (end_pos != (start_pos - 1))
+        {
+            final_end_pos = end_pos;
+            break;
+        }
+        end_chunk = end_chunk - str.arena->chunk_size;
+    }
+    ASSERT(final_start_pos);
+    ASSERT(final_end_pos);
+
+    db_string new_str = db_string_make(str.arena, "");
+
+    while (final_start_pos <= final_end_pos)
+    {
+        if (*final_start_pos == '\0')
+        {
+            start_chunk = start_chunk->next_chunk;
+            ASSERT(start_chunk); // should never happen
+            final_start_pos = (char *)((uintptr_t)start_chunk + sizeof(db_arena_chunk_header));
+        }
+        db_string_append_char(new_str, *final_start_pos);
+    }
     return new_str;
 }
 /**
