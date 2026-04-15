@@ -224,20 +224,46 @@ void ui_checkbox(const char *label, b8 *boolean)
     static rectangle min_checkbox_dimen = (rectangle){20, 20};
     ui_row(0)
     {
-        db_string str      = db_string_make(&state->ui_frame_arena, label);
-        ui_elem  *checkbox = __ui_create_box(str,
-                                             TYPE_CHECKBOX,
-                                             TYPE_SIZE_FIXED,
-                                             TYPE_POS_NONE,
-                                             TYPE_POS_NONE,
-                                             TYPE_ACTION_HOVERABLE | TYPE_ACTION_PRESSABLE,
-                                             TYPE_AXIS_BASED_ON_PARENT,
-                                             TYPE_AXIS_NONE,
-                                             TYPE_RENDER_RECTANGLE,
-                                             (vector2d){0},
-                                             min_checkbox_dimen);
-        __ui_check_action(checkbox);
+        static s32 checkbox_count = 0;
 
+        db_string str = db_string_make(&state->ui_frame_arena, label);
+        char      buf[16];
+        snprintf(buf, 16, "checkbox##%d", state->window_counter);
+        db_string_append(&str, buf);
+
+        ui_elem *checkbox      = __ui_create_box(str,
+                                                 TYPE_CHECKBOX,
+                                                 TYPE_SIZE_FIXED,
+                                                 TYPE_POS_NONE,
+                                                 TYPE_POS_NONE,
+                                                 TYPE_ACTION_HOVERABLE | TYPE_ACTION_PRESSABLE,
+                                                 TYPE_AXIS_BASED_ON_PARENT,
+                                                 TYPE_AXIS_NONE,
+                                                 TYPE_RENDER_RECTANGLE,
+                                                 (vector2d){0},
+                                                 min_checkbox_dimen);
+        checkbox->checkbox_val = boolean;
+
+        __ui_check_action(checkbox);
+        if (checkbox->is_active)
+        {
+            *boolean = !(*boolean);
+        }
+
+        ASSERT(checkbox->checkbox_val != NULL);
+        // hmmmm i dont know if this is safe though
+        // @todo: have font support for this
+        // if (*checkbox->checkbox_val)
+        // {
+        //     char *tick = "✓";
+        //     db_string_clear(&checkbox->label);
+        //     db_string_append(&checkbox->label, tick);
+        //     checkbox->render_type       = TYPE_RENDER_TEXT | TYPE_RENDER_RECTANGLE;
+        //     checkbox->children_pos_type = TYPE_POS_PLACE_CHILDREN_AT_CENTER;
+        // }
+
+        db_string_clear(&str);
+        db_string_append(&str, label);
         ui_elem *checkbox_label = __ui_create_box(str,
                                                   TYPE_LABEL,
                                                   TYPE_SIZE_BASED_ON_TEXT,
@@ -249,13 +275,6 @@ void ui_checkbox(const char *label, b8 *boolean)
                                                   TYPE_RENDER_TEXT,
                                                   (vector2d){0},
                                                   (rectangle){0});
-
-        checkbox->checkbox_val = boolean;
-
-        if (checkbox->is_active)
-        {
-            *boolean = !(*boolean);
-        }
     }
 }
 
@@ -335,12 +354,19 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
                                                     (rectangle){50, 25});
             __ui_check_action(first_slider);
 
-            // do the logic
             first_slider->slider_min    = desc->min;
             first_slider->slider_max    = desc->max;
             first_slider->val_ind       = 0;
             first_slider->val_ptrs[0]   = desc->first_val;
             first_slider->growth_factor = 1;
+
+            char buffer[16];
+            snprintf(buffer, 16, "%2.f", *desc->first_val);
+
+            db_string_clear(&first_slider->label);
+            db_string_append(&first_slider->label, buffer);
+
+            first_slider->render_type = TYPE_RENDER_RECTANGLE | TYPE_RENDER_TEXT;
         }
         if (desc->second_val)
         {
@@ -364,6 +390,14 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             second_slider->val_ind       = 1;
             second_slider->val_ptrs[1]   = desc->second_val;
             second_slider->growth_factor = 1;
+
+            char buffer[16];
+            snprintf(buffer, 16, "%2.f", *desc->second_val);
+
+            db_string_clear(&second_slider->label);
+            db_string_append(&second_slider->label, buffer);
+
+            second_slider->render_type = TYPE_RENDER_RECTANGLE | TYPE_RENDER_TEXT;
         }
         if (desc->third_val)
         {
@@ -387,6 +421,14 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             third_slider->val_ind       = 2;
             third_slider->val_ptrs[2]   = desc->third_val;
             third_slider->growth_factor = 1;
+
+            char buffer[16];
+            snprintf(buffer, 16, "%2.f", *desc->third_val);
+
+            db_string_clear(&third_slider->label);
+            db_string_append(&third_slider->label, buffer);
+
+            third_slider->render_type = TYPE_RENDER_RECTANGLE | TYPE_RENDER_TEXT;
         }
         if (desc->fourth_val)
         {
@@ -411,6 +453,14 @@ void __ui_slider(const char *label, ui_slider_desc *desc)
             fourth_slider->val_ind       = 3;
             fourth_slider->val_ptrs[3]   = desc->fourth_val;
             fourth_slider->growth_factor = 1;
+
+            char buffer[16];
+            snprintf(buffer, 16, "%2.f", *desc->fourth_val);
+
+            db_string_clear(&fourth_slider->label);
+            db_string_append(&fourth_slider->label, buffer);
+
+            fourth_slider->render_type = TYPE_RENDER_RECTANGLE | TYPE_RENDER_TEXT;
         }
     }
 }
@@ -638,6 +688,7 @@ db_array_render_elements ui_get_render_commands()
             // or the ui_create_box should take care of this... to be decided
             if (node->type & TYPE_CHECKBOX)
             {
+                // @todo: for the checkbox: have porper icon support
                 ASSERT(node->checkbox_val != NULL);
                 if (*node->checkbox_val)
                 {
@@ -708,27 +759,6 @@ db_array_render_elements ui_get_render_commands()
                 s_pos.x  = db_clamp_integer(node->position.x, s_pos.x, node->position.x + node->dimensions.width);
 
                 s_pos.y = node->position.y;
-
-                char buffer[16];
-                snprintf(buffer, 16, "%2.f", *node->val_ptrs[node->val_ind]);
-
-                rectangle *n_dimen    = &node->dimensions;
-                vector3d  *n_pos      = &node->position;
-                rectangle  text_dimen = state->measure_text_size(buffer, state->font_size);
-                vector2d   center     = {(n_dimen->width * 0.5) + n_pos->x,
-                                         (n_dimen->height * 0.5) + n_pos->y};
-
-                ui_render_element slider_val = {};
-
-                db_string txt              = db_string_make(&state->ui_string_chunk_arena, buffer);
-                slider_val.label           = txt;
-                slider_val.position        = (vector3d){center.x - (text_dimen.width * 0.5), center.y - (text_dimen.height * 0.5), node->position.z};
-                slider_val.clip_dimensions = node->clip_dimensions;
-                slider_val.clip_position   = node->clip_position;
-                slider_val.type            = TYPE_RENDER_TEXT;
-                slider_val.color           = node->text_color;
-
-                db_array_render_elements_append(&state->render_elements, slider_val);
 
                 ui_render_element slider_box = {};
 

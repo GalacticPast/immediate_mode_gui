@@ -7,10 +7,13 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 600
 
+static Font *ui_font;
+
 rectangle ui_measure_text(const char *text, u32 font_size)
 {
-    s32 text_width = MeasureText(text, font_size);
-    return (rectangle){text_width, font_size}; // change this to be dynamic
+    ASSERT(font_size == 14);
+    Vector2 text_width = MeasureTextEx(*ui_font, text, font_size, 2);
+    return (rectangle){text_width.x, text_width.y}; // change this to be dynamic
 }
 
 int main()
@@ -22,7 +25,10 @@ int main()
     db_arena main_arena  = db_arena_init();
     db_arena frame_arena = db_arena_init();
 
-    u32 size = 0;
+    u32         size      = 0;
+    const char *file_name = "src/Archivo-Regular.ttf";
+    Font        font      = LoadFont(file_name);
+    ui_font               = &font;
 
     ui_init(&size, 0, &ui_measure_text);
     void *ui_mem = db_arena_alloc(&main_arena, size);
@@ -106,7 +112,7 @@ int main()
                 break;
                 case TYPE_RENDER_TEXT:
                 {
-                    DrawText(db_string_get_cstr(&frame_arena, &elems.data[i].label), position.x, position.y, 14, color);
+                    DrawTextEx(*ui_font, db_string_get_cstr(&frame_arena, &elems.data[i].label), position, 14, 2, color);
                 }
                 break;
                 case TYPE_RENDER_CIRCLE:

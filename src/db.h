@@ -349,7 +349,7 @@ db_arena       db_arena_init_with_size(db_arena_params *params, size_t memory_si
 void          *db_arena_alloc(db_arena *arena, size_t size);
 db_return_code db_arena_reset(db_arena *arena);
 db_return_code db_arena_free(db_arena *arena);
-db_return_code db_arena_free_node(db_arena *arena, void *ptr);
+db_return_code db_arena_free_node(db_arena *arena, db_arena_chunk_header *node);
 /*
 
 ▗▄▄▄▗▖  ▗▖▗▖  ▗▖ ▗▄▖ ▗▖  ▗▖▗▄▄▄▖ ▗▄▄▖     ▗▄▖ ▗▄▄▖ ▗▄▄▖  ▗▄▖▗▖  ▗▖▗▄▄▖
@@ -1124,34 +1124,32 @@ void *db_arena_alloc(db_arena *arena, size_t size)
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠻⠅⠀⠀⠀⠀⠘⠉⠹⣿⣿⣿⣿⣿⣿⣿⣿⣧⡀⠀⠉⠓⠢⣄⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣉⣿⣿⣿⣿⣿⣿⣿⣿⣷⣻⡄⠀⠀⢀⡑⠢⠄
 */
-db_return_code db_arena_free_node(db_arena *arena, void *ptr)
+db_return_code db_arena_free_node(db_arena *arena, db_arena_chunk_header *node)
 {
-    ASSERT(ptr);
+    ASSERT(node);
     ASSERT(arena);
     ASSERT(arena->type == TYPE_ARENA_CHUNKED);
 
-    db_arena_chunk_header *header = (db_arena_chunk_header *)((uintptr_t)ptr - sizeof(db_arena_chunk_header));
-    memset(header, 0, arena->chunk_size);
-    // check for ptr validity
-    // kinda useless??
+    // check for node validity
     {
-
         u64 chunk_count = arena->total_size / arena->chunk_size;
 
         db_arena_chunk_header *check = arena->memory;
         b8                     found = false;
         for (u64 i = 0; i < chunk_count && !found; i++)
         {
-            if (check == header)
+            if (check == node)
             {
                 found = true;
             }
             check = (db_arena_chunk_header *)((uintptr_t)check + arena->chunk_size);
         }
-        ASSERT_WITH_MSG(found, "This ptr is not valid.");
+        ASSERT_WITH_MSG(found, "This arena node ptr is not valid.");
     }
-    header->next_chunk    = arena->free_list_head;
-    arena->free_list_head = header;
+
+    memset(node, 0, arena->chunk_size);
+    node->next_chunk      = arena->free_list_head;
+    arena->free_list_head = node;
 
     return DB_SUCCESS;
 }
@@ -1591,13 +1589,14 @@ void db_string_clear(db_string *const str)
     if (str->arena->type == TYPE_ARENA_CHUNKED)
     {
         db_arena_chunk_header *header = DB_ARENA_CHUNK_HEADER(str->data);
-        while (header->next_chunk)
+        // clear all the nodes
+        while (header)
         {
             db_arena_chunk_header *prev = header;
             header                      = header->next_chunk;
             db_arena_free_node(str->arena, prev);
         }
-        str->data = NULL;
+        str->data = db_arena_alloc(str->arena, str->arena->chunk_size);
     }
     else
     {
