@@ -978,33 +978,6 @@ db_arena db_arena_init_with_size(db_arena_params *params, size_t memory_size)
     return arena;
 }
 
-void db_arena_chunked_init(db_arena *arena, size_t chunk_count, void *mem)
-{
-    ASSERT((uintptr_t)mem % 8 == 0);
-    for (u64 i = 0; i < chunk_count; i++)
-    {
-
-        /*
-           ┌───┐
-           │   │ <- previous linked list head
-           └───┘
-
-           ┌───┐   ┌───┐
-           │   ├<──┤   │ <- new node which was created
-           └───┘   └───┘       which will be our new linked list head
-           ^
-           prev head will be the next node in our linked list;
-
-*/
-        db_arena_chunk_header *header  = (db_arena_chunk_header *)mem;
-        header->next_chunk             = arena->free_list_head;
-        arena->free_list_head          = header;
-        mem                           += arena->chunk_size;
-        // i think this is unnecessary cause chunk size is supposed to be multiple of 8
-        DB_ALIGN_TO_MULTIPLE(mem, DB_DEFAULT_MEMORY_ALIGNEMENT);
-    }
-}
-
 void db_arena_resize(db_arena *arena, size_t size)
 {
     size_t new_size = 0;
@@ -1030,12 +1003,33 @@ void db_arena_resize(db_arena *arena, size_t size)
     if (arena->type == TYPE_ARENA_CHUNKED)
     {
         arena->allocated_till_now = arena->total_size;
-        u64 chunk_count           = num_pages / arena->chunk_size;
+        u64 chunk_count           = (num_pages * DB_PAGE_SIZE) / arena->chunk_size;
 
-        //@todo: is this real chat??
         uintptr_t new_page_start_ptr = (uintptr_t)arena->memory + (num_pages * DB_PAGE_SIZE);
-        db_arena_chunked_init(arena, chunk_count, (void *)new_page_start_ptr);
-        arena->free_list_head = (db_arena_chunk_header *)new_page_start_ptr;
+
+        uintptr_t mem = new_page_start_ptr;
+        for (u64 i = 0; i < chunk_count; i++)
+        {
+
+            /*
+               ┌───┐
+               │   │ <- previous linked list head
+               └───┘
+
+               ┌───┐   ┌───┐
+               │   ├<──┤   │ <- new node which was created
+               └───┘   └───┘       which will be our new linked list head
+               ^
+               prev head will be the next node in our linked list;
+
+*/
+            db_arena_chunk_header *header  = (db_arena_chunk_header *)mem;
+            header->next_chunk             = arena->free_list_head;
+            arena->free_list_head          = header;
+            // i think this is unnecessary cause chunk size is supposed to be multiple of 8
+            mem                           += arena->chunk_size;
+            DB_ALIGN_TO_MULTIPLE(mem, DB_DEFAULT_MEMORY_ALIGNEMENT);
+        }
     }
 }
 
@@ -1652,9 +1646,8 @@ void db_string_append(db_string *const str, const char *other)
     }
     else
     {
-        const char *orig  = other;
-        char       *start = str->data;
-        char       *b     = str->data;
+        const char *orig = other;
+        char       *b    = str->data;
 
         while (*b)
         {
@@ -1666,8 +1659,7 @@ void db_string_append(db_string *const str, const char *other)
             memcpy(new_data, str->data, str->length);
             str->data = new_data;
 
-            b     = str->data;
-            start = str->data;
+            b = str->data;
         }
 
         while (*orig)

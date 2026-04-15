@@ -720,8 +720,8 @@ db_array_render_elements ui_get_render_commands()
 
                 ui_render_element slider_val = {};
 
-                db_string txt              = db_string_make(&state->ui_string_chunk_arena, buffer); // @FIX: we are actually leaking mem here
-                slider_val.label           = txt;                                                   // just copy the parent pointer
+                db_string txt              = db_string_make(&state->ui_string_chunk_arena, buffer);
+                slider_val.label           = txt;
                 slider_val.position        = (vector3d){center.x - (text_dimen.width * 0.5), center.y - (text_dimen.height * 0.5), node->position.z};
                 slider_val.clip_dimensions = node->clip_dimensions;
                 slider_val.clip_position   = node->clip_position;
@@ -811,29 +811,6 @@ void __ui_check_n_set_clip(ui_elem *parent, ui_elem *elem)
 }
 void __ui_set_clip_regions()
 {
-    // for (ui_elem *window = db_array_get_index_ptr(state->elements, 1);
-    //      window->index != 0;
-    //      window = db_array_get_index_ptr(state->elements, window->next_sibling_index))
-    // {
-    //     ASSERT(window->type & TYPE_WINDOW);
-    //
-    //     s32 w_child_count = window->child_count;
-    //
-    //     for (ui_elem *l_node = db_array_get_index_ptr(state->elements, window->first_child_index);
-    //          w_child_count != 0 && l_node->index != 0;
-    //          w_child_count--, l_node = db_array_get_index_ptr(state->elements, l_node->next_sibling_index))
-    //     {
-    //         __ui_check_n_set_clip(window, l_node);
-    //         for (ui_elem *elem = db_array_get_index_ptr(state->elements, l_node->first_child_index);
-    //              l_node->child_count != 0 && elem->index != 0;
-    //              elem = db_array_get_index_ptr(state->elements, elem->next_sibling_index))
-    //         {
-    //             // hmmmmmm
-    //             // @fix: think this troughhh
-    //             __ui_check_n_set_clip(window, elem);
-    //         }
-    //     }
-    // }
     s32      i      = 0;
     ui_elem *window = &state->ui_elements.data[0];
     db_array_for_each(state->windows, i, window)
@@ -959,7 +936,7 @@ void __ui_resize_n_reposition_elements(s32 index)
                 {
                     children_have_flex_property  = true;
                     child_with_flex_prop_shares += elem->growth_factor;
-                    child_with_flex_props++;
+                    child_with_flex_props       += 1;
                 }
                 else // hmmm is this true?
                 {

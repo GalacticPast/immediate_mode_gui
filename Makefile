@@ -11,7 +11,7 @@ ifeq ($(OS),Windows_NT)
 	INCLUDES  := -I./external/raylib/include 
 
 	LINKER_FLAGS := -L./external/raylib/lib/windows/ -lraylib -lkernel32 -lgdi32 -luser32 -ladvapi32 -ltdh -lwinmm -lshell32 -Wl,/NODEFAULTLIB:libcmt
-	COMPILER_FLAGS := -Wall -Werror -Wextra -g -O0 -Wno-system-headers  -Wno-varargs -Wno-unused-variable -Wno-unused-private-field -Wno-unused-parameter -Wno-unused-function -fsanitize=undefined -fsanitize-trap
+	COMPILER_FLAGS := -Wall -Werror -Wextra -g -O0 -Wno-system-headers  -Wno-varargs -Wno-unused-but-set-variable -Wno-unused-variable -Wno-unused-private-field -Wno-unused-parameter -Wno-unused-function -fsanitize=undefined -fsanitize-trap
 
 	rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 	SRC_FILES := $(call rwildcard,$(SRC)/,*.c)
