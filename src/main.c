@@ -26,7 +26,7 @@ int main()
     db_arena frame_arena = db_arena_init();
 
     u32         size      = 0;
-    const char *file_name = "src/Archivo-Regular.ttf";
+    const char *file_name = "Archivo-Regular.ttf";
     Font        font      = LoadFont(file_name);
     ui_font               = &font;
 

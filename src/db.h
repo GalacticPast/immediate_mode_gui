@@ -1148,8 +1148,10 @@ db_return_code db_arena_free_node(db_arena *arena, db_arena_chunk_header *node)
     }
 
     memset(node, 0, arena->chunk_size);
+
     node->next_chunk      = arena->free_list_head;
     arena->free_list_head = node;
+    asan_poison_memory_region(node, arena->chunk_size);
 
     return DB_SUCCESS;
 }
@@ -1523,7 +1525,7 @@ char *db_string_get_cstr(db_arena *arena, db_string const *const str)
         return "";
     if (str->arena->type == TYPE_ARENA_CHUNKED)
     {
-        cpy         = db_arena_alloc(arena, str->length);
+        cpy         = db_arena_alloc(arena, str->length + 1);
         char *c     = cpy;
         char *start = str->data;
         char *b     = str->data;
@@ -1546,6 +1548,7 @@ char *db_string_get_cstr(db_arena *arena, db_string const *const str)
                 }
             }
         }
+        cpy[str->length] = '\0';
     }
     else
     {

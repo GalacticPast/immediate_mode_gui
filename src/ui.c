@@ -305,6 +305,10 @@ void ui_radio_button(const char *label, s32 *choice, s32 id)
         {
             *circle->choice = *circle->choice == id ? -1 : id; // if it was already set set it to null
         }
+        if (*circle->choice == id)
+        {
+            circle->background_color = (color){255, 0, 0, 255};
+        }
 
         ui_elem *text = __ui_create_box(str,
                                         TYPE_LABEL,
@@ -769,23 +773,6 @@ db_array_render_elements ui_get_render_commands()
                 slider_box.clip_position   = node->clip_position;
                 slider_box.color           = (color){52, 66, 56, 255}; // green
                 db_array_render_elements_append(&state->render_elements, slider_box);
-            }
-            else if (node->type & TYPE_RADIO_BUTTON && node->radio_button_id == *node->choice)
-            {
-                ui_render_element shadow_button = {};
-                f32               half_x        = node->position.x + (node->dimensions.width * 0.5);
-                f32               half_y        = node->position.y + (node->dimensions.height * 0.5);
-
-                shadow_button.type   = TYPE_RENDER_CIRCLE;
-                shadow_button.center = (vector3d){half_x, half_y, node->position.z};
-
-                shadow_button.dimensions.width = node->dimensions.width - 3;
-                shadow_button.radius           = node->dimensions.width / 2;
-                shadow_button.clip_dimensions  = node->clip_dimensions;
-                shadow_button.clip_position    = node->clip_position;
-                shadow_button.color            = (color){255, 0, 0, 255}; // red
-
-                db_array_render_elements_append(&state->render_elements, shadow_button);
             }
         }
     }
