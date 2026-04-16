@@ -26,7 +26,7 @@ int main()
     db_arena frame_arena = db_arena_init();
 
     u32         size      = 0;
-    const char *file_name = "Archivo-Regular.ttf";
+    const char *file_name = "../assets/Archivo-Regular.ttf";
     Font        font      = LoadFont(file_name);
     ui_font               = &font;
 
@@ -71,17 +71,21 @@ int main()
             ui_radio_button("radio 1", &choice, 1);
             ui_radio_button("radio 2", &choice, 2);
 
-            static f32 r = 0;
-            static f32 g = 0;
-            static f32 b = 0;
-            static f32 a = 0;
-            ui_slider_ext("color",
-                          .min        = 0,
-                          .max        = 255,
-                          .first_val  = &r,
-                          .second_val = &g,
-                          .third_val  = &b,
-                          .fourth_val = &a);
+            static b8 is_expanded = false;
+            ui_tree("color slider", &is_expanded)
+            {
+                static f32 r = 0;
+                static f32 g = 0;
+                static f32 b = 0;
+                static f32 a = 0;
+                ui_slider_ext("color",
+                              .min        = 0,
+                              .max        = 255,
+                              .first_val  = &r,
+                              .second_val = &g,
+                              .third_val  = &b,
+                              .fourth_val = &a);
+            }
         }
 
         BeginDrawing();

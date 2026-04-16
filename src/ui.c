@@ -542,6 +542,45 @@ b8 __ui_column_end(void)
     return true; // macro hack
 }
 
+b8 __ui_tree_begin(const char *title, b8 *is_expanded)
+{
+    ASSERT(is_expanded);
+    db_string str = db_string_make(&state->ui_frame_arena, title);
+
+    ui_elem *c_box = __ui_create_box(str,
+                                     TYPE_TREE,
+                                     TYPE_SIZE_FLEX_GROW | TYPE_SIZE_BASED_ON_TEXT,
+                                     TYPE_POS_NONE,
+                                     TYPE_POS_PLACE_CHILDREN_AT_CENTER,
+                                     TYPE_ACTION_HOVERABLE | TYPE_ACTION_PRESSABLE,
+                                     TYPE_AXIS_BASED_ON_PARENT,
+                                     TYPE_AXIS_COLUMN,
+                                     TYPE_RENDER_RECTANGLE | TYPE_RENDER_TEXT,
+                                     (vector2d){0},
+                                     (rectangle){0});
+
+    c_box->is_expanded = is_expanded;
+
+    __ui_check_action(c_box);
+
+    if (c_box->is_active)
+    {
+        *c_box->is_expanded = !(*c_box->is_expanded);
+    }
+    if (*c_box->is_expanded == false)
+    {
+        db_stack_s32_pop(&state->curr_parent_index);
+    }
+
+    return *c_box->is_expanded;
+}
+
+b8 __ui_tree_end()
+{
+    db_stack_s32_pop(&state->curr_parent_index);
+    return true;
+}
+
 void __ui_sort_window_z_indexes()
 {
     ui_elem *node = NULL;
@@ -576,6 +615,170 @@ void __ui_sort_window_z_indexes()
     }
 }
 
+void __ui_append_render_node(ui_elem *node)
+{
+    // debug specfic
+#if 0
+            if (node->type & TYPE_CONTAINER)
+            {
+                ui_render_element elem = {};
+
+                elem.dimensions = node->dimensions;
+                elem.position   = node->position;
+                elem.type       = TYPE_RENDER_RECTANGLE;
+                elem.color      = (color){255, 255, 255, 255};
+                db_array_append(state->render_elements, elem);
+            }
+#endif
+    // no matter the node type there will always be a box
+
+    if (node->render_type & TYPE_RENDER_RECTANGLE)
+    {
+        ui_render_element border = {};
+
+        border.dimensions      = (rectangle){node->dimensions.width + 4, node->dimensions.height + 4};
+        border.position        = (vector3d){node->position.x - 2, node->position.y - 2, node->position.z};
+        border.type            = TYPE_RENDER_RECTANGLE;
+        border.clip_dimensions = node->clip_dimensions;
+        border.clip_position   = node->clip_position;
+        border.color           = (color){0, 0, 0, 255};
+        db_array_render_elements_append(&state->render_elements, border);
+
+        ui_render_element elem = {};
+
+        elem.position        = node->position;
+        elem.dimensions      = node->dimensions;
+        elem.clip_dimensions = node->clip_dimensions;
+        elem.clip_position   = node->clip_position;
+        elem.type            = TYPE_RENDER_RECTANGLE;
+        elem.color           = node->background_color;
+        db_array_render_elements_append(&state->render_elements, elem);
+    }
+    if (node->render_type & TYPE_RENDER_TEXT)
+    {
+        ui_render_element elem = {};
+        elem.dimensions        = node->text_dimensions;
+        elem.position          = node->text_position;
+        elem.clip_dimensions   = node->clip_dimensions;
+        elem.clip_position     = node->clip_position;
+        elem.type              = TYPE_RENDER_TEXT;
+        elem.color             = node->text_color;
+        elem.label             = node->label;
+        db_array_render_elements_append(&state->render_elements, elem);
+
+#if 0 // debug specific
+                ui_render_element d_elem = {};
+
+                d_elem.dimensions = node->dimensions;
+                d_elem.position   = node->position;
+                d_elem.type       = TYPE_RENDER_RECTANGLE;
+                d_elem.color      = (color){255, 255, 255, 100};
+                db_array_append(state->render_elements, d_elem);
+#endif
+    }
+    if (node->render_type & TYPE_RENDER_CIRCLE)
+    {
+        f32               half_x = node->position.x + (node->dimensions.width * 0.5);
+        f32               half_y = node->position.y + (node->dimensions.height * 0.5);
+        ui_render_element elem   = {};
+
+        elem.center          = (vector3d){half_x, half_y, node->position.z};
+        elem.radius          = node->dimensions.width * 0.5;
+        elem.clip_dimensions = node->clip_dimensions;
+        elem.clip_position   = node->clip_position;
+        elem.type            = TYPE_RENDER_CIRCLE;
+        elem.color           = node->background_color;
+        db_array_render_elements_append(&state->render_elements, elem);
+    }
+    // ui_elem->type specific render commands.
+    //@note: we create these at the end, should we doing this here?
+    // or the ui_create_box should take care of this... to be decided
+    if (node->type & TYPE_CHECKBOX)
+    {
+        // @todo: for the checkbox: have porper icon support
+        ASSERT(node->checkbox_val != NULL);
+        if (*node->checkbox_val)
+        {
+            // @refactor: maybe we should do this upstream? Maybe as soon in the ui_create_box function?
+            f32 two_thirds_y = node->position.y + (node->dimensions.height * 0.666666);
+            f32 half_x       = node->position.x + (node->dimensions.width * 0.5);
+            f32 scale        = 6.5;
+
+            node->check_common_start = (vector2d){half_x, two_thirds_y};
+
+            node->check_second_half_end = (vector2d){1.35, -1.28};   // -------->   thanks  desmos
+            node->check_first_half_end  = (vector2d){-1.023, -0.71}; // -- /
+
+            node->check_first_half_end.x  *= scale;
+            node->check_first_half_end.y  *= scale;
+            node->check_second_half_end.x *= scale;
+            node->check_second_half_end.y *= scale;
+
+            node->check_first_half_end.x += half_x;
+            node->check_first_half_end.y += two_thirds_y;
+
+            node->check_second_half_end.x += half_x;
+            node->check_second_half_end.y += two_thirds_y;
+
+            ui_render_element start = {};
+            start.type              = TYPE_RENDER_LINE;
+            start.clip_dimensions   = node->clip_dimensions;
+            start.clip_position     = node->clip_position;
+            start.start_pos         = (vector3d){half_x, two_thirds_y, node->position.z};
+            start.end_pos           = (vector3d){node->check_first_half_end.x, node->check_first_half_end.y, node->position.z};
+            start.color             = node->text_color; //@fix: make it dynamic
+            db_array_render_elements_append(&state->render_elements, start);
+
+            ui_render_element second = {};
+            start.start_pos          = (vector3d){half_x, two_thirds_y, node->position.z};
+            second.type              = TYPE_RENDER_LINE;
+            second.start_pos         = (vector3d){half_x, two_thirds_y, node->position.z};
+            second.clip_dimensions   = node->clip_dimensions;
+            second.clip_position     = node->clip_position;
+            second.end_pos           = (vector3d){node->check_second_half_end.x, node->check_second_half_end.y, node->position.z};
+            second.color             = node->text_color; //@fix: make it dynamic
+            db_array_render_elements_append(&state->render_elements, second);
+        }
+    }
+    else if (node->type & TYPE_SLIDER)
+    {
+        //@warn: should we be doing this here?
+        vector3d s_pos = node->position;
+        if (node->is_active)
+        {
+            // Ensure we don't divide by zero
+            if (node->dimensions.width > 0.0f)
+            {
+
+                f32 point_in_box = state->mouse_pos.x - node->position.x;
+                point_in_box     = db_clamp_integer(0, point_in_box, (f32)node->dimensions.width);
+
+                f32 percentage = point_in_box / (f32)node->dimensions.width;
+                f32 rel_val    = node->slider_min + (percentage * (node->slider_max - node->slider_min));
+
+                ASSERT(rel_val <= node->slider_max && rel_val >= node->slider_min);
+                *node->val_ptrs[node->val_ind] = rel_val;
+            }
+        }
+
+        s_pos.x  = *node->val_ptrs[node->val_ind] * (1 / node->slider_max) * node->dimensions.width;
+        s_pos.x += node->position.x - 8;
+        s_pos.x  = db_clamp_integer(node->position.x, s_pos.x, node->position.x + node->dimensions.width);
+
+        s_pos.y = node->position.y;
+
+        ui_render_element slider_box = {};
+
+        slider_box.position        = s_pos;
+        slider_box.dimensions      = (rectangle){8, node->dimensions.height};
+        slider_box.type            = TYPE_RENDER_RECTANGLE;
+        slider_box.clip_dimensions = node->clip_dimensions;
+        slider_box.clip_position   = node->clip_position;
+        slider_box.color           = (color){52, 66, 56, 255}; // green
+        db_array_render_elements_append(&state->render_elements, slider_box);
+    }
+}
+
 // hmmmmm
 db_array_render_elements ui_get_render_commands()
 {
@@ -607,172 +810,20 @@ db_array_render_elements ui_get_render_commands()
 
         ui_elem *node = db_array_ui_elements_get_index_ptr(&state->ui_elements, window->first_child_index);
 
-        for (s32 j = node->index; j < state->ui_elements.length; j++)
+        for (ui_elem *l_node = db_array_ui_elements_get_index_ptr(&state->ui_elements, window->first_child_index);
+             l_node->index != 0;
+             l_node = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->next_sibling_index))
         {
-            node = db_array_ui_elements_get_index_ptr(&state->ui_elements, j);
-            if (node->type & TYPE_WINDOW) // base case
+            __ui_append_render_node(l_node);
+            if (l_node->type == TYPE_TREE && l_node->is_expanded == false)
             {
-                break;
+                continue;
             }
-            // debug specfic
-#if 0
-            if (node->type & TYPE_CONTAINER)
+            for (ui_elem *elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
+                 l_node->child_count != 0 && elem->index != 0;
+                 elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
             {
-                ui_render_element elem = {};
-
-                elem.dimensions = node->dimensions;
-                elem.position   = node->position;
-                elem.type       = TYPE_RENDER_RECTANGLE;
-                elem.color      = (color){255, 255, 255, 255};
-                db_array_append(state->render_elements, elem);
-            }
-#endif
-            // no matter the node type there will always be a box
-
-            if (node->render_type & TYPE_RENDER_RECTANGLE)
-            {
-                ui_render_element border = {};
-
-                border.dimensions      = (rectangle){node->dimensions.width + 4, node->dimensions.height + 4};
-                border.position        = (vector3d){node->position.x - 2, node->position.y - 2, node->position.z};
-                border.type            = TYPE_RENDER_RECTANGLE;
-                border.clip_dimensions = node->clip_dimensions;
-                border.clip_position   = node->clip_position;
-                border.color           = (color){0, 0, 0, 255};
-                db_array_render_elements_append(&state->render_elements, border);
-
-                ui_render_element elem = {};
-
-                elem.position        = node->position;
-                elem.dimensions      = node->dimensions;
-                elem.clip_dimensions = node->clip_dimensions;
-                elem.clip_position   = node->clip_position;
-                elem.type            = TYPE_RENDER_RECTANGLE;
-                elem.color           = node->background_color;
-                db_array_render_elements_append(&state->render_elements, elem);
-            }
-            if (node->render_type & TYPE_RENDER_TEXT)
-            {
-                ui_render_element elem = {};
-                elem.dimensions        = node->text_dimensions;
-                elem.position          = node->text_position;
-                elem.clip_dimensions   = node->clip_dimensions;
-                elem.clip_position     = node->clip_position;
-                elem.type              = TYPE_RENDER_TEXT;
-                elem.color             = node->text_color;
-                elem.label             = node->label;
-                db_array_render_elements_append(&state->render_elements, elem);
-
-#if 0 // debug specific
-                ui_render_element d_elem = {};
-
-                d_elem.dimensions = node->dimensions;
-                d_elem.position   = node->position;
-                d_elem.type       = TYPE_RENDER_RECTANGLE;
-                d_elem.color      = (color){255, 255, 255, 100};
-                db_array_append(state->render_elements, d_elem);
-#endif
-            }
-            if (node->render_type & TYPE_RENDER_CIRCLE)
-            {
-                f32               half_x = node->position.x + (node->dimensions.width * 0.5);
-                f32               half_y = node->position.y + (node->dimensions.height * 0.5);
-                ui_render_element elem   = {};
-
-                elem.center          = (vector3d){half_x, half_y, node->position.z};
-                elem.radius          = node->dimensions.width * 0.5;
-                elem.clip_dimensions = node->clip_dimensions;
-                elem.clip_position   = node->clip_position;
-                elem.type            = TYPE_RENDER_CIRCLE;
-                elem.color           = node->background_color;
-                db_array_render_elements_append(&state->render_elements, elem);
-            }
-            // ui_elem->type specific render commands.
-            //@note: we create these at the end, should we doing this here?
-            // or the ui_create_box should take care of this... to be decided
-            if (node->type & TYPE_CHECKBOX)
-            {
-                // @todo: for the checkbox: have porper icon support
-                ASSERT(node->checkbox_val != NULL);
-                if (*node->checkbox_val)
-                {
-                    // @refactor: maybe we should do this upstream? Maybe as soon in the ui_create_box function?
-                    f32 two_thirds_y = node->position.y + (node->dimensions.height * 0.666666);
-                    f32 half_x       = node->position.x + (node->dimensions.width * 0.5);
-                    f32 scale        = 6.5;
-
-                    node->check_common_start = (vector2d){half_x, two_thirds_y};
-
-                    node->check_second_half_end = (vector2d){1.35, -1.28};   // -------->   thanks  desmos
-                    node->check_first_half_end  = (vector2d){-1.023, -0.71}; // -- /
-
-                    node->check_first_half_end.x  *= scale;
-                    node->check_first_half_end.y  *= scale;
-                    node->check_second_half_end.x *= scale;
-                    node->check_second_half_end.y *= scale;
-
-                    node->check_first_half_end.x += half_x;
-                    node->check_first_half_end.y += two_thirds_y;
-
-                    node->check_second_half_end.x += half_x;
-                    node->check_second_half_end.y += two_thirds_y;
-
-                    ui_render_element start = {};
-                    start.type              = TYPE_RENDER_LINE;
-                    start.clip_dimensions   = node->clip_dimensions;
-                    start.clip_position     = node->clip_position;
-                    start.start_pos         = (vector3d){half_x, two_thirds_y, node->position.z};
-                    start.end_pos           = (vector3d){node->check_first_half_end.x, node->check_first_half_end.y, node->position.z};
-                    start.color             = node->text_color; //@fix: make it dynamic
-                    db_array_render_elements_append(&state->render_elements, start);
-
-                    ui_render_element second = {};
-                    start.start_pos          = (vector3d){half_x, two_thirds_y, node->position.z};
-                    second.type              = TYPE_RENDER_LINE;
-                    second.start_pos         = (vector3d){half_x, two_thirds_y, node->position.z};
-                    second.clip_dimensions   = node->clip_dimensions;
-                    second.clip_position     = node->clip_position;
-                    second.end_pos           = (vector3d){node->check_second_half_end.x, node->check_second_half_end.y, node->position.z};
-                    second.color             = node->text_color; //@fix: make it dynamic
-                    db_array_render_elements_append(&state->render_elements, second);
-                }
-            }
-            else if (node->type & TYPE_SLIDER)
-            {
-                //@warn: should we be doing this here?
-                vector3d s_pos = node->position;
-                if (node->is_active)
-                {
-                    // Ensure we don't divide by zero
-                    if (node->dimensions.width > 0.0f)
-                    {
-
-                        f32 point_in_box = state->mouse_pos.x - node->position.x;
-                        point_in_box     = db_clamp_integer(0, point_in_box, (f32)node->dimensions.width);
-
-                        f32 percentage = point_in_box / (f32)node->dimensions.width;
-                        f32 rel_val    = node->slider_min + (percentage * (node->slider_max - node->slider_min));
-
-                        ASSERT(rel_val <= node->slider_max && rel_val >= node->slider_min);
-                        *node->val_ptrs[node->val_ind] = rel_val;
-                    }
-                }
-
-                s_pos.x  = *node->val_ptrs[node->val_ind] * (1 / node->slider_max) * node->dimensions.width;
-                s_pos.x += node->position.x - 8;
-                s_pos.x  = db_clamp_integer(node->position.x, s_pos.x, node->position.x + node->dimensions.width);
-
-                s_pos.y = node->position.y;
-
-                ui_render_element slider_box = {};
-
-                slider_box.position        = s_pos;
-                slider_box.dimensions      = (rectangle){8, node->dimensions.height};
-                slider_box.type            = TYPE_RENDER_RECTANGLE;
-                slider_box.clip_dimensions = node->clip_dimensions;
-                slider_box.clip_position   = node->clip_position;
-                slider_box.color           = (color){52, 66, 56, 255}; // green
-                db_array_render_elements_append(&state->render_elements, slider_box);
+                __ui_append_render_node(elem);
             }
         }
     }
@@ -876,202 +927,200 @@ void __ui_center_elem_text(ui_elem *elem)
             break;
     }
 }
-
+// for (ui_elem *window = db_array_ui_elements_get_index_ptr(&state->ui_elements, index);
+//      window->index != 0;
+//      window = db_array_ui_elements_get_index_ptr(&state->ui_elements, window->next_sibling_index))
+// {
+//     ASSERT(window->type & TYPE_WINDOW);
+//
+//     s32 w_child_count = window->child_count;
+//
+//     for (ui_elem *l_node = db_array_ui_elements_get_index_ptr(&state->ui_elements, window->first_child_index);
+//          w_child_count != 0 && l_node->index != 0;
+//          w_child_count--, l_node = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->next_sibling_index))
+//     {
+//         if (l_node->pos_type & TYPE_POS_FIXED)
+//         {
+//             continue;
+//         }
+//         //@todo: increase the width / height of the layout node depending on the width/height of the parent
+//         // check if the layout has the grow / shrink proerty though
+//         if (l_node->size_type & TYPE_SIZE_FLEX_GROW)
+//         {
+//             l_node->dimensions.width = window->dimensions.width - window->padding.x;
+//         }
+//         vector3d overriden_pos = l_node->position;
+//
+//         // sanity check
+//         ASSERT(l_node->axis_type == window->child_axis_type);
+//         switch (l_node->pos_type)
+//         {
+//             case TYPE_POS_PLACE_SELF_AT_END:
+//             {
+//                 overriden_pos.x = l_node->position.x + (window->dimensions.width - l_node->dimensions.width - 3);
+//                 overriden_pos.y = l_node->position.y + (window->dimensions.height - l_node->dimensions.height - 3);
+//             }
+//             case TYPE_POS_PLACE_SELF_AT_CENTER:
+//             {
+//                 // @todo:
+//             }
+//             break;
+//             case TYPE_POS_PLACE_SELF_AT_START:
+//             {
+//                 // @todo:
+//             }
+//             break;
+//                 break;
+//             default:
+//                 break;
+//         }
+//         if (l_node->axis_type & TYPE_AXIS_ROW)
+//         {
+//             l_node->position.y = overriden_pos.y;
+//         }
+//         else if (l_node->axis_type & TYPE_AXIS_COLUMN)
+//         {
+//             l_node->position.x = overriden_pos.x;
+//         }
+//
+//         b8 children_have_flex_property = false;
+//
+//         s32 fixed_widths_sum            = 0;
+//         s32 child_with_flex_prop_shares = 0;
+//         s32 child_with_flex_props       = 0;
+//
+//         ui_elem *elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
+//         for (s32 i = elem->index;
+//              elem->parent_index == l_node->index;
+//              elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
+//         {
+//             if (elem->size_type & TYPE_SIZE_FLEX_GROW || elem->size_type & TYPE_SIZE_FLEX_SHRINK)
+//             {
+//                 children_have_flex_property  = true;
+//                 child_with_flex_prop_shares += elem->growth_factor;
+//                 child_with_flex_props       += 1;
+//             }
+//             else // hmmm is this true?
+//             {
+//                 fixed_widths_sum += elem->dimensions.width;
+//             }
+//         }
+//
+//         s32 remaining_space = l_node->dimensions.width - fixed_widths_sum;
+//
+//         if (children_have_flex_property)
+//         {
+//             f32      remainder = (f32)remaining_space / child_with_flex_prop_shares;
+//             vector3d cursor    = l_node->position;
+//
+//             elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
+//             for (s32 i = elem->index;
+//                  elem->parent_index == l_node->index;
+//                  elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
+//             {
+//                 if (elem->size_type & TYPE_SIZE_FIXED)
+//                 {
+//                     elem->position = cursor;
+//                 }
+//                 else if (elem->size_type & TYPE_SIZE_FLEX_GROW)
+//                 {
+//                     elem->position         = cursor;
+//                     elem->dimensions.width = remainder * elem->growth_factor;
+//
+//                     if (elem->render_type & TYPE_RENDER_TEXT)
+//                     {
+//                         __ui_center_elem_text(elem);
+//                     }
+//                 }
+//                 cursor.x += elem->dimensions.width;
+//             }
+//         }
+//         else if (!(l_node->children_pos_type & TYPE_POS_NONE))
+//         {
+//             // well its already placed as AT START so
+//             s32 remaining_space = l_node->dimensions.width - fixed_widths_sum;
+//             s32 children_count  = l_node->child_count;
+//
+//             vector3d cursor  = (vector3d){l_node->position.x, l_node->position.y, l_node->position.z};
+//             vector2d padding = {0};
+//
+//             switch (l_node->children_pos_type)
+//             {
+//                 case TYPE_POS_PLACE_CHILDREN_AT_END:
+//                 {
+//                     cursor.x = l_node->position.x + remaining_space;
+//                 }
+//                 break;
+//                 case TYPE_POS_PLACE_CHILDREN_AT_CENTER:
+//                 {
+//                     cursor.x = l_node->position.x + ((f32)remaining_space / 2);
+//                 }
+//                 break;
+//                 case TYPE_POS_SPACE_CHILDREN_EVENLY:
+//                 {
+//                     padding.x = (f32)remaining_space / (children_count + 1);
+//                 }
+//                 break;
+//                 case TYPE_POS_SPACE_CHILDREN_BETWEEN:
+//                 {
+//                     if (children_count > 1)
+//                     {
+//                         padding.x = (f32)remaining_space / (children_count - 1);
+//                     }
+//                 }
+//                 break;
+//                 case TYPE_POS_SPACE_CHILDREN_AROUND:
+//                 {
+//                     padding.x  = (f32)remaining_space / children_count;
+//                     cursor.x  += padding.x / 2;
+//                 }
+//                 break;
+//                 default:
+//                 {
+//                 }
+//                 break;
+//             }
+//
+//             elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
+//             for (s32 i = elem->index;
+//                  elem->parent_index == l_node->index;
+//                  elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
+//             {
+//                 elem->position.x = cursor.x;
+//                 elem->position.y = cursor.y;
+//
+//                 switch (elem->pos_type)
+//                 {
+//                     case TYPE_POS_PLACE_SELF_AT_END:
+//                     {
+//                         ASSERT(l_node->child_axis_type == elem->axis_type);
+//                         if (elem->axis_type & TYPE_AXIS_ROW)
+//                         {
+//                             elem->position.y += l_node->dimensions.height - elem->dimensions.height;
+//                         }
+//                         else if (elem->axis_type & TYPE_AXIS_COLUMN)
+//                         {
+//                             elem->position.x += l_node->dimensions.width - elem->dimensions.width;
+//                         }
+//                     }
+//                     break;
+//                     default:
+//                         break;
+//                 }
+//
+//                 if (elem->render_type & TYPE_RENDER_TEXT)
+//                 {
+//                     __ui_center_elem_text(elem);
+//                 }
+//                 cursor.x += elem->dimensions.width + padding.x;
+//             }
+//         }
+//     }
+// }
+//
 // private implementation
 void __ui_resize_n_reposition_elements(s32 index)
 {
-    //@fix: this kinda doesnt take care of the fact if we encounter an container inside an container
-    // we could have a parent container have n + 1 containers inside it.
-    for (ui_elem *window = db_array_ui_elements_get_index_ptr(&state->ui_elements, index);
-         window->index != 0;
-         window = db_array_ui_elements_get_index_ptr(&state->ui_elements, window->next_sibling_index))
-    {
-        ASSERT(window->type & TYPE_WINDOW);
-
-        s32 w_child_count = window->child_count;
-
-        for (ui_elem *l_node = db_array_ui_elements_get_index_ptr(&state->ui_elements, window->first_child_index);
-             w_child_count != 0 && l_node->index != 0;
-             w_child_count--, l_node = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->next_sibling_index))
-        {
-            if (l_node->pos_type & TYPE_POS_FIXED)
-            {
-                continue;
-            }
-            //@todo: increase the width / height of the layout node depending on the width/height of the parent
-            // check if the layout has the grow / shrink proerty though
-            if (l_node->size_type & TYPE_SIZE_FLEX_GROW)
-            {
-                l_node->dimensions.width = window->dimensions.width - window->padding.x;
-            }
-            vector3d overriden_pos = l_node->position;
-
-            // sanity check
-            ASSERT(l_node->axis_type == window->child_axis_type);
-            switch (l_node->pos_type)
-            {
-                case TYPE_POS_PLACE_SELF_AT_END:
-                {
-                    overriden_pos.x = l_node->position.x + (window->dimensions.width - l_node->dimensions.width - 3);
-                    overriden_pos.y = l_node->position.y + (window->dimensions.height - l_node->dimensions.height - 3);
-                }
-                case TYPE_POS_PLACE_SELF_AT_CENTER:
-                {
-                    // @todo:
-                }
-                break;
-                case TYPE_POS_PLACE_SELF_AT_START:
-                {
-                    // @todo:
-                }
-                break;
-                    break;
-                default:
-                    break;
-            }
-            if (l_node->axis_type & TYPE_AXIS_ROW)
-            {
-                l_node->position.y = overriden_pos.y;
-            }
-            else if (l_node->axis_type & TYPE_AXIS_COLUMN)
-            {
-                l_node->position.x = overriden_pos.x;
-            }
-
-            b8 children_have_flex_property = false;
-
-            s32 fixed_widths_sum            = 0;
-            s32 child_with_flex_prop_shares = 0;
-            s32 child_with_flex_props       = 0;
-
-            ui_elem *elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
-            for (s32 i = elem->index;
-                 elem->parent_index == l_node->index;
-                 elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
-            {
-                if (elem->size_type & TYPE_SIZE_FLEX_GROW || elem->size_type & TYPE_SIZE_FLEX_SHRINK)
-                {
-                    children_have_flex_property  = true;
-                    child_with_flex_prop_shares += elem->growth_factor;
-                    child_with_flex_props       += 1;
-                }
-                else // hmmm is this true?
-                {
-                    fixed_widths_sum += elem->dimensions.width;
-                }
-            }
-
-            s32 remaining_space = l_node->dimensions.width - fixed_widths_sum;
-
-            if (children_have_flex_property)
-            {
-                f32      remainder = (f32)remaining_space / child_with_flex_prop_shares;
-                vector3d cursor    = l_node->position;
-
-                elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
-                for (s32 i = elem->index;
-                     elem->parent_index == l_node->index;
-                     elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
-                {
-                    if (elem->size_type & TYPE_SIZE_FIXED)
-                    {
-                        elem->position = cursor;
-                    }
-                    else if (elem->size_type & TYPE_SIZE_FLEX_GROW)
-                    {
-                        elem->position         = cursor;
-                        elem->dimensions.width = remainder * elem->growth_factor;
-
-                        if (elem->render_type & TYPE_RENDER_TEXT)
-                        {
-                            __ui_center_elem_text(elem);
-                        }
-                    }
-                    cursor.x += elem->dimensions.width;
-                }
-            }
-            else if (!(l_node->children_pos_type & TYPE_POS_NONE))
-            {
-                // well its already placed as AT START so
-                s32 remaining_space = l_node->dimensions.width - fixed_widths_sum;
-                s32 children_count  = l_node->child_count;
-
-                vector3d cursor  = (vector3d){l_node->position.x, l_node->position.y, l_node->position.z};
-                vector2d padding = {0};
-
-                switch (l_node->children_pos_type)
-                {
-                    case TYPE_POS_PLACE_CHILDREN_AT_END:
-                    {
-                        cursor.x = l_node->position.x + remaining_space;
-                    }
-                    break;
-                    case TYPE_POS_PLACE_CHILDREN_AT_CENTER:
-                    {
-                        cursor.x = l_node->position.x + ((f32)remaining_space / 2);
-                    }
-                    break;
-                    case TYPE_POS_SPACE_CHILDREN_EVENLY:
-                    {
-                        padding.x = (f32)remaining_space / (children_count + 1);
-                    }
-                    break;
-                    case TYPE_POS_SPACE_CHILDREN_BETWEEN:
-                    {
-                        if (children_count > 1)
-                        {
-                            padding.x = (f32)remaining_space / (children_count - 1);
-                        }
-                    }
-                    break;
-                    case TYPE_POS_SPACE_CHILDREN_AROUND:
-                    {
-                        padding.x  = (f32)remaining_space / children_count;
-                        cursor.x  += padding.x / 2;
-                    }
-                    break;
-                    default:
-                    {
-                    }
-                    break;
-                }
-
-                elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
-                for (s32 i = elem->index;
-                     elem->parent_index == l_node->index;
-                     elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
-                {
-                    elem->position.x = cursor.x;
-                    elem->position.y = cursor.y;
-
-                    switch (elem->pos_type)
-                    {
-                        case TYPE_POS_PLACE_SELF_AT_END:
-                        {
-                            ASSERT(l_node->child_axis_type == elem->axis_type);
-                            if (elem->axis_type & TYPE_AXIS_ROW)
-                            {
-                                elem->position.y += l_node->dimensions.height - elem->dimensions.height;
-                            }
-                            else if (elem->axis_type & TYPE_AXIS_COLUMN)
-                            {
-                                elem->position.x += l_node->dimensions.width - elem->dimensions.width;
-                            }
-                        }
-                        break;
-                        default:
-                            break;
-                    }
-
-                    if (elem->render_type & TYPE_RENDER_TEXT)
-                    {
-                        __ui_center_elem_text(elem);
-                    }
-                    cursor.x += elem->dimensions.width + padding.x;
-                }
-            }
-        }
-    }
 }
 
 void __ui_calculate_position(s32 index)
@@ -1081,14 +1130,12 @@ void __ui_calculate_position(s32 index)
         return;
     }
 
-    static u32 padding_x = 2;
+    static u32 padding_x = 2; // @todo: make this robust
     static u32 padding_y = 2;
 
     ui_elem *first_child = db_array_ui_elements_get_index_ptr(&state->ui_elements, index);
 
-    ui_elem *parent       = db_array_ui_elements_get_index_ptr(&state->ui_elements, first_child->parent_index);
-    //@fix: why is this here
-    parent->clip_position = parent->position;
+    ui_elem *parent = db_array_ui_elements_get_index_ptr(&state->ui_elements, first_child->parent_index);
 
     vector3d cursor = {parent->position.x + padding_x, parent->position.y + padding_y, parent->position.z};
 
@@ -1155,8 +1202,7 @@ void __ui_calculate_element_sizes()
         parent = &arr->data[elem->parent_index];
         if (parent->index == 0)
             break;
-
-        if (elem->action_type & TYPE_ACTION_REFLECT_TO_PARENT)
+        if (elem->action_type & TYPE_ACTION_REFLECT_TO_PARENT) // this is for the little knob at the bottom right screen
         {
             if (elem->is_active)
             {
@@ -1169,7 +1215,7 @@ void __ui_calculate_element_sizes()
             }
         }
 
-        if (elem->size_type & TYPE_SIZE_BASED_ON_TEXT)
+        if (elem->size_type & TYPE_SIZE_BASED_ON_TEXT) // if it's a primitive element
         {
             elem->text_dimensions = state->measure_text_size(db_string_get_cstr(&state->ui_frame_arena, &elem->label), state->font_size);
 
@@ -1189,8 +1235,6 @@ void __ui_calculate_element_sizes()
                 parent->dimensions.width  += elem->dimensions.width + 2 * padding_x;
                 parent->dimensions.height  = db_max(elem->dimensions.height, parent->dimensions.height);
             }
-            //@fix: i dont think this should be heree
-            parent->clip_dimensions = parent->dimensions;
         }
     }
 }
@@ -1387,7 +1431,7 @@ ui_elem *__ui_create_box(db_string           str,
 
     // do this at the last. Dummy
     db_array_ui_elements_append(&state->ui_elements, box);
-    if (type & TYPE_WINDOW || type & TYPE_CONTAINER)
+    if (type & TYPE_WINDOW || type & TYPE_CONTAINER || type & TYPE_TREE)
     {
         if (prev && type & TYPE_WINDOW)
         {

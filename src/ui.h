@@ -40,7 +40,7 @@ typedef enum
     TYPE_SCROLL_BAR   = bit7,
     TYPE_CONTAINER    = bit8,
     TYPE_LABEL        = bit9,
-    TYPE_TREE         = bit10, //@todo: think of a better name
+    TYPE_TREE         = bit10,
 } ui_elem_type;
 
 typedef enum
@@ -165,6 +165,11 @@ typedef struct
 
 typedef struct
 {
+    b8 *is_expanded;
+} ui_tree_desc;
+
+typedef struct
+{
     // this is also a linked list/intrusive list
     u64 id;
     s64 index; // index to itself
@@ -202,6 +207,8 @@ typedef struct
 
     // type specific data // lol
     ui_render_type render_type;
+
+    b8 *is_expanded; // for type tree
 
     b8      *checkbox_val;
     vector2d check_common_start;
@@ -303,12 +310,17 @@ db_array_render_elements ui_get_render_commands();
 #define ui_window(title) defer_loop(__ui_window_begin(title, &(ui_window_desc){0}), __ui_window_end())
 #define ui_window_ext(title, ...) defer_loop(__ui_window_begin(title, &(ui_window_desc){__VA_ARGS__}), __ui_window_end())
 
+#define ui_tree(title, is_expanded_ptr) defer_loop(__ui_tree_begin(title, is_expanded_ptr), __ui_tree_end())
+
 b8 __ui_window_begin(const char *title, ui_window_desc *desc);
 b8 __ui_window_end(void);
 b8 __ui_row_begin(ui_layout_desc *desc);
 b8 __ui_row_end(void);
 b8 __ui_column_begin(ui_layout_desc *desc);
 b8 __ui_column_end(void);
+
+b8 __ui_tree_begin(const char *title, b8 *is_expaneded);
+b8 __ui_tree_end();
 
 b8   ui_button(const char *label);
 b8   ui_label(const char *label);
