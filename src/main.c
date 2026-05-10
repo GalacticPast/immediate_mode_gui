@@ -106,7 +106,7 @@ int main()
             Vector2 clip_position   = (Vector2){elems.data[i].clip_position.x, elems.data[i].clip_position.y};
             Vector2 clip_dimensions = (Vector2){elems.data[i].clip_dimensions.width, elems.data[i].clip_dimensions.height};
 
-            BeginScissorMode(clip_position.x, clip_position.y, clip_dimensions.x, clip_dimensions.y);
+            //    BeginScissorMode(clip_position.x, clip_position.y, clip_dimensions.x, clip_dimensions.y);
             switch (elems.data[i].type)
             {
                 case TYPE_RENDER_RECTANGLE:
@@ -133,7 +133,7 @@ int main()
                 default:
                     break;
             }
-            EndScissorMode();
+            //   EndScissorMode();
         }
         EndDrawing();
         db_arena_reset(&frame_arena);

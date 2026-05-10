@@ -792,7 +792,7 @@ db_array_render_elements ui_get_render_commands()
 
     __ui_resize_n_reposition_elements(1);
 
-    __ui_set_clip_regions();
+    //__ui_set_clip_regions();
 
     // generate the render commands
     ui_elem *window = NULL;
@@ -877,6 +877,8 @@ void __ui_check_n_set_clip(ui_elem *parent, ui_elem *elem)
         e_clip->height        = max_y - min_y;
     }
 }
+
+//@fix: this kinda shit
 void __ui_set_clip_regions()
 {
     s32      i      = 0;
@@ -900,6 +902,7 @@ void __ui_set_clip_regions()
     }
 }
 
+//@todo:
 void __ui_center_elem_text(ui_elem *elem)
 {
 
@@ -927,202 +930,218 @@ void __ui_center_elem_text(ui_elem *elem)
             break;
     }
 }
-// for (ui_elem *window = db_array_ui_elements_get_index_ptr(&state->ui_elements, index);
-//      window->index != 0;
-//      window = db_array_ui_elements_get_index_ptr(&state->ui_elements, window->next_sibling_index))
-// {
-//     ASSERT(window->type & TYPE_WINDOW);
 //
-//     s32 w_child_count = window->child_count;
-//
-//     for (ui_elem *l_node = db_array_ui_elements_get_index_ptr(&state->ui_elements, window->first_child_index);
-//          w_child_count != 0 && l_node->index != 0;
-//          w_child_count--, l_node = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->next_sibling_index))
+// private implementation
+//     for (ui_elem *window = db_array_ui_elements_get_index_ptr(&state->ui_elements, index);
+//          window->index != 0;
+//          window = db_array_ui_elements_get_index_ptr(&state->ui_elements, window->next_sibling_index))
 //     {
-//         if (l_node->pos_type & TYPE_POS_FIXED)
-//         {
-//             continue;
-//         }
-//         //@todo: increase the width / height of the layout node depending on the width/height of the parent
-//         // check if the layout has the grow / shrink proerty though
-//         if (l_node->size_type & TYPE_SIZE_FLEX_GROW)
-//         {
-//             l_node->dimensions.width = window->dimensions.width - window->padding.x;
-//         }
-//         vector3d overriden_pos = l_node->position;
+//         ASSERT(window->type & TYPE_WINDOW);
 //
-//         // sanity check
-//         ASSERT(l_node->axis_type == window->child_axis_type);
-//         switch (l_node->pos_type)
+//         s32 w_child_count = window->child_count;
+//
+//         for (ui_elem *l_node = db_array_ui_elements_get_index_ptr(&state->ui_elements, window->first_child_index);
+//              w_child_count != 0 && l_node->index != 0;
+//              w_child_count--, l_node = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->next_sibling_index))
 //         {
-//             case TYPE_POS_PLACE_SELF_AT_END:
+//             if (l_node->pos_type & TYPE_POS_FIXED)
 //             {
-//                 overriden_pos.x = l_node->position.x + (window->dimensions.width - l_node->dimensions.width - 3);
-//                 overriden_pos.y = l_node->position.y + (window->dimensions.height - l_node->dimensions.height - 3);
+//                 continue;
 //             }
-//             case TYPE_POS_PLACE_SELF_AT_CENTER:
+//             //@todo: increase the width / height of the layout node depending on the width/height of the parent
+//             // check if the layout has the grow / shrink proerty though
+//             if (l_node->size_type & TYPE_SIZE_FLEX_GROW)
 //             {
-//                 // @todo:
+//                 l_node->dimensions.width = window->dimensions.width - window->padding.x;
 //             }
-//             break;
-//             case TYPE_POS_PLACE_SELF_AT_START:
+//             vector3d overriden_pos = l_node->position;
+//
+//             // sanity check
+//             ASSERT(l_node->axis_type == window->child_axis_type);
+//             switch (l_node->pos_type)
 //             {
-//                 // @todo:
-//             }
-//             break;
+//                 case TYPE_POS_PLACE_SELF_AT_END:
+//                 {
+//                     overriden_pos.x = l_node->position.x + (window->dimensions.width - l_node->dimensions.width - 3);
+//                     overriden_pos.y = l_node->position.y + (window->dimensions.height - l_node->dimensions.height - 3);
+//                 }
+//                 case TYPE_POS_PLACE_SELF_AT_CENTER:
+//                 {
+//                     // @todo:
+//                 }
 //                 break;
-//             default:
+//                 case TYPE_POS_PLACE_SELF_AT_START:
+//                 {
+//                     // @todo:
+//                 }
 //                 break;
-//         }
-//         if (l_node->axis_type & TYPE_AXIS_ROW)
-//         {
-//             l_node->position.y = overriden_pos.y;
-//         }
-//         else if (l_node->axis_type & TYPE_AXIS_COLUMN)
-//         {
-//             l_node->position.x = overriden_pos.x;
-//         }
-//
-//         b8 children_have_flex_property = false;
-//
-//         s32 fixed_widths_sum            = 0;
-//         s32 child_with_flex_prop_shares = 0;
-//         s32 child_with_flex_props       = 0;
-//
-//         ui_elem *elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
-//         for (s32 i = elem->index;
-//              elem->parent_index == l_node->index;
-//              elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
-//         {
-//             if (elem->size_type & TYPE_SIZE_FLEX_GROW || elem->size_type & TYPE_SIZE_FLEX_SHRINK)
-//             {
-//                 children_have_flex_property  = true;
-//                 child_with_flex_prop_shares += elem->growth_factor;
-//                 child_with_flex_props       += 1;
+//                     break;
+//                 default:
+//                     break;
 //             }
-//             else // hmmm is this true?
+//             if (l_node->axis_type & TYPE_AXIS_ROW)
 //             {
-//                 fixed_widths_sum += elem->dimensions.width;
+//                 l_node->position.y = overriden_pos.y;
 //             }
-//         }
+//             else if (l_node->axis_type & TYPE_AXIS_COLUMN)
+//             {
+//                 l_node->position.x = overriden_pos.x;
+//             }
 //
-//         s32 remaining_space = l_node->dimensions.width - fixed_widths_sum;
+//             b8 children_have_flex_property = false;
 //
-//         if (children_have_flex_property)
-//         {
-//             f32      remainder = (f32)remaining_space / child_with_flex_prop_shares;
-//             vector3d cursor    = l_node->position;
+//             s32 fixed_widths_sum            = 0;
+//             s32 child_with_flex_prop_shares = 0;
+//             s32 child_with_flex_props       = 0;
 //
-//             elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
+//             ui_elem *elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
 //             for (s32 i = elem->index;
 //                  elem->parent_index == l_node->index;
 //                  elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
 //             {
-//                 if (elem->size_type & TYPE_SIZE_FIXED)
+//                 if (elem->size_type & TYPE_SIZE_FLEX_GROW || elem->size_type & TYPE_SIZE_FLEX_SHRINK)
 //                 {
-//                     elem->position = cursor;
+//                     children_have_flex_property  = true;
+//                     child_with_flex_prop_shares += elem->growth_factor;
+//                     child_with_flex_props       += 1;
 //                 }
-//                 else if (elem->size_type & TYPE_SIZE_FLEX_GROW)
+//                 else // hmmm is this true?
 //                 {
-//                     elem->position         = cursor;
-//                     elem->dimensions.width = remainder * elem->growth_factor;
+//                     fixed_widths_sum += elem->dimensions.width;
+//                 }
+//             }
+//
+//             s32 remaining_space = l_node->dimensions.width - fixed_widths_sum;
+//
+//             if (children_have_flex_property && child_with_flex_prop_shares)
+//             {
+//                 f32      remainder = (f32)remaining_space / child_with_flex_prop_shares;
+//                 vector3d cursor    = l_node->position;
+//
+//                 elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
+//                 for (s32 i = elem->index;
+//                      elem->parent_index == l_node->index;
+//                      elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
+//                 {
+//                     if (elem->size_type & TYPE_SIZE_FIXED)
+//                     {
+//                         elem->position = cursor;
+//                     }
+//                     else if (elem->size_type & TYPE_SIZE_FLEX_GROW)
+//                     {
+//                         elem->position         = cursor;
+//                         elem->dimensions.width = remainder * elem->growth_factor;
+//
+//                         if (elem->render_type & TYPE_RENDER_TEXT)
+//                         {
+//                             __ui_center_elem_text(elem);
+//                         }
+//                     }
+//                     cursor.x += elem->dimensions.width;
+//                 }
+//             }
+//             else if (!(l_node->children_pos_type & TYPE_POS_NONE) || child_with_flex_prop_shares == 0)
+//             {
+//                 // well its already placed as AT START so
+//                 s32 remaining_space = l_node->dimensions.width - fixed_widths_sum;
+//                 s32 children_count  = l_node->child_count;
+//
+//                 vector3d cursor  = (vector3d){l_node->position.x, l_node->position.y, l_node->position.z};
+//                 vector2d padding = {0};
+//
+//                 switch (l_node->children_pos_type)
+//                 {
+//                     case TYPE_POS_PLACE_CHILDREN_AT_END:
+//                     {
+//                         cursor.x = l_node->position.x + remaining_space;
+//                     }
+//                     break;
+//                     case TYPE_POS_PLACE_CHILDREN_AT_CENTER:
+//                     {
+//                         cursor.x = l_node->position.x + ((f32)remaining_space / 2);
+//                     }
+//                     break;
+//                     case TYPE_POS_SPACE_CHILDREN_EVENLY:
+//                     {
+//                         padding.x = (f32)remaining_space / (children_count + 1);
+//                     }
+//                     break;
+//                     case TYPE_POS_SPACE_CHILDREN_BETWEEN:
+//                     {
+//                         if (children_count > 1)
+//                         {
+//                             padding.x = (f32)remaining_space / (children_count - 1);
+//                         }
+//                     }
+//                     break;
+//                     case TYPE_POS_SPACE_CHILDREN_AROUND:
+//                     {
+//                         padding.x  = (f32)remaining_space / children_count;
+//                         cursor.x  += padding.x / 2;
+//                     }
+//                     break;
+//                     default:
+//                     {
+//                     }
+//                     break;
+//                 }
+//
+//                 elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
+//                 for (s32 i = elem->index;
+//                      elem->parent_index == l_node->index;
+//                      elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
+//                 {
+//                     elem->position.x = cursor.x;
+//                     elem->position.y = cursor.y;
+//
+//                     switch (elem->pos_type)
+//                     {
+//                         case TYPE_POS_PLACE_SELF_AT_END:
+//                         {
+//                             ASSERT(l_node->child_axis_type == elem->axis_type);
+//                             if (elem->axis_type & TYPE_AXIS_ROW)
+//                             {
+//                                 elem->position.y += l_node->dimensions.height - elem->dimensions.height;
+//                             }
+//                             else if (elem->axis_type & TYPE_AXIS_COLUMN)
+//                             {
+//                                 elem->position.x += l_node->dimensions.width - elem->dimensions.width;
+//                             }
+//                         }
+//                         break;
+//                         default:
+//                             break;
+//                     }
 //
 //                     if (elem->render_type & TYPE_RENDER_TEXT)
 //                     {
 //                         __ui_center_elem_text(elem);
 //                     }
+//                     cursor.x += elem->dimensions.width + padding.x;
 //                 }
-//                 cursor.x += elem->dimensions.width;
-//             }
-//         }
-//         else if (!(l_node->children_pos_type & TYPE_POS_NONE))
-//         {
-//             // well its already placed as AT START so
-//             s32 remaining_space = l_node->dimensions.width - fixed_widths_sum;
-//             s32 children_count  = l_node->child_count;
-//
-//             vector3d cursor  = (vector3d){l_node->position.x, l_node->position.y, l_node->position.z};
-//             vector2d padding = {0};
-//
-//             switch (l_node->children_pos_type)
-//             {
-//                 case TYPE_POS_PLACE_CHILDREN_AT_END:
-//                 {
-//                     cursor.x = l_node->position.x + remaining_space;
-//                 }
-//                 break;
-//                 case TYPE_POS_PLACE_CHILDREN_AT_CENTER:
-//                 {
-//                     cursor.x = l_node->position.x + ((f32)remaining_space / 2);
-//                 }
-//                 break;
-//                 case TYPE_POS_SPACE_CHILDREN_EVENLY:
-//                 {
-//                     padding.x = (f32)remaining_space / (children_count + 1);
-//                 }
-//                 break;
-//                 case TYPE_POS_SPACE_CHILDREN_BETWEEN:
-//                 {
-//                     if (children_count > 1)
-//                     {
-//                         padding.x = (f32)remaining_space / (children_count - 1);
-//                     }
-//                 }
-//                 break;
-//                 case TYPE_POS_SPACE_CHILDREN_AROUND:
-//                 {
-//                     padding.x  = (f32)remaining_space / children_count;
-//                     cursor.x  += padding.x / 2;
-//                 }
-//                 break;
-//                 default:
-//                 {
-//                 }
-//                 break;
-//             }
-//
-//             elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, l_node->first_child_index);
-//             for (s32 i = elem->index;
-//                  elem->parent_index == l_node->index;
-//                  elem = db_array_ui_elements_get_index_ptr(&state->ui_elements, elem->next_sibling_index))
-//             {
-//                 elem->position.x = cursor.x;
-//                 elem->position.y = cursor.y;
-//
-//                 switch (elem->pos_type)
-//                 {
-//                     case TYPE_POS_PLACE_SELF_AT_END:
-//                     {
-//                         ASSERT(l_node->child_axis_type == elem->axis_type);
-//                         if (elem->axis_type & TYPE_AXIS_ROW)
-//                         {
-//                             elem->position.y += l_node->dimensions.height - elem->dimensions.height;
-//                         }
-//                         else if (elem->axis_type & TYPE_AXIS_COLUMN)
-//                         {
-//                             elem->position.x += l_node->dimensions.width - elem->dimensions.width;
-//                         }
-//                     }
-//                     break;
-//                     default:
-//                         break;
-//                 }
-//
-//                 if (elem->render_type & TYPE_RENDER_TEXT)
-//                 {
-//                     __ui_center_elem_text(elem);
-//                 }
-//                 cursor.x += elem->dimensions.width + padding.x;
 //             }
 //         }
 //     }
 // }
 //
-// private implementation
 void __ui_resize_n_reposition_elements(s32 index)
 {
-}
+    if (index == 0)
+    {
+        return;
+    }
 
+    ui_elem *first_child = db_array_ui_elements_get_index_ptr(&state->ui_elements, index);
+
+    ui_elem *parent = db_array_ui_elements_get_index_ptr(&state->ui_elements, first_child->parent_index);
+
+    ui_elem *node = first_child;
+
+    for (; node->index != 0;
+         node = db_array_ui_elements_get_index_ptr(&state->ui_elements, node->next_sibling_index))
+    {
+    }
+}
 void __ui_calculate_position(s32 index)
 {
     if (index == 0)
@@ -1148,6 +1167,7 @@ void __ui_calculate_position(s32 index)
         {
             continue;
         }
+
         if (node->action_type & TYPE_ACTION_ANCHORED_TO_PARENT)
         {
             if (node->is_active)
@@ -1163,6 +1183,7 @@ void __ui_calculate_position(s32 index)
                 parent->clip_position = parent->position;
             }
         }
+
         if (node->axis_type & TYPE_AXIS_ROW)
         {
             node->position  = cursor;
@@ -1195,13 +1216,13 @@ void __ui_calculate_element_sizes()
     ui_elem              *parent = &state->ui_elements.data[0];
     db_array_ui_elements *arr    = &state->ui_elements;
 
-    // postorder traversal
     for (s32 i = arr->length - 1; i >= 0; i--)
     {
         elem   = &arr->data[i];
         parent = &arr->data[elem->parent_index];
         if (parent->index == 0)
             break;
+
         if (elem->action_type & TYPE_ACTION_REFLECT_TO_PARENT) // this is for the little knob at the bottom right screen
         {
             if (elem->is_active)
